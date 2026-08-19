@@ -7,7 +7,7 @@
 # pymupdf is AGPL-3.0-or-commercial. It is NOT a required dependency and is NOT
 # distributed by this project: install it yourself if you want in-app PDF
 # rendering, and read THIRD_PARTY_NOTICES.md section 1 first.
-pymupdf==1.27.2.3          # AGPL-3.0-or-commercial - in-app PDF rendering
+pymupdf==1.28.2          # AGPL-3.0-or-commercial - in-app PDF rendering
 opencv-python==4.13.0.92   # Apache-2.0 - image pre-processing in the labs
 pytesseract==0.3.13        # Apache-2.0 - OCR (also needs a Tesseract binary)
 python-docx==1.2.0         # MIT - Word export
