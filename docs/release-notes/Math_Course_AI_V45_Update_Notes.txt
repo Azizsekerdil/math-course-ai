@@ -1,0 +1,74 @@
+[Editorial note for the public release: this historical note was
+sanitised before publication. An absolute development path and the
+titles of a third party's commercial course catalogue were replaced
+with placeholders. Nothing else was changed.]
+
+Math Course AI - V45 Konu Bilgi Bankasi + Genisletilmis Kutuphane
+
+EMBEDDED TOPIC KNOWLEDGE BASE (no AI required, ever)
+- New module topic_knowledge.py: ~140 hand-written entries (272 normalised
+  lookup keys, covering name variants) explaining core topics across every
+  course - Prealgebra through Data Science.
+- Every entry follows a fixed structure: an everyday analogy, "Nedir?"
+  (definition, LaTeX where useful), "Ne Icin Kullanilir?" (2-4 numbered real-
+  world/software/science applications), and - where a real discoverer exists -
+  a "Tarih ve Biyografi" section with genuine, verifiable facts: who, roughly
+  when, and why it mattered (Pythagoras ~570-495 BCE, Descartes 1637 Cartesian
+  coordinates, Newton/Leibniz calculus 1665-1675, Gauss/Jordan elimination,
+  Grassmann's 1844 dimension formula, Bayes 1763, Gosset/Guinness "Student"
+  t-distribution 1908, and ~50 more). Purely procedural topics (rounding, unit
+  price, order of operations) intentionally get NO fabricated history section -
+  only genuinely attributable discoveries carry one.
+- The ℹ topic window now checks this embedded base FIRST: instant, fully
+  offline, zero AI calls. Verified against the real resource tree: 274 of 668
+  distinct "Notes by section" topic names (41%) resolve immediately.
+- Local LM Studio AI is no longer required or automatic - it is now an
+  OPTIONAL manual fallback ("🤖 Yerel AI'dan Sor" / "🤖 Farklı Açıklama İste")
+  for the topics not yet documented, or if you want a second opinion on a
+  documented one. Previously AI-generated explanations remain cached and are
+  still shown if present.
+- Lookup is typo-tolerant: normalize_topic_key() strips accents, apostrophes,
+  case, and separators, then falls back to a fuzzy (difflib) match - so
+  "L'Hospital's Rule" and "l'hopitals rule" resolve to the same entry, but an
+  unrelated made-up topic correctly returns nothing (no false positives).
+- This is Round 1 of an ongoing, iterative build ("Doengue Muehendisligi" /
+  loop engineering: generate -> evaluate coverage -> revise -> expand next
+  round). Coverage will keep growing in future updates; topics not yet
+  documented show a clear message instead of a fabricated answer.
+
+COURSE LIST UPDATED FOR NEWLY ADDED RESOURCES
+- The course-ordering list now covers Calculus 1/2/3, Probability &
+  Statistics and data-science material - these now sort correctly in Kurs
+  Kaynaklari instead of falling to the alphabetical tail.
+  [Public-release note: the ordering was later rewritten to key on SUBJECT
+  keywords instead of specific course-product titles; see mca_common.
+  COURSE_ORDER_KEYWORDS.]
+
+QUESTION BANK LIBRARY EXPANDED (Resources\Soru Bankalari)
+- Added 9 more openly licensed books/folders (~430 MB), verified opening and
+  license before inclusion:
+    04 Geometry\            Africk "Elementary College Geometry" (LibreTexts
+                             edition) - CC BY-NC-SA 4.0, 367 pages
+    05 Trig - Precalculus\  OpenStax Algebra and Trigonometry 2e - CC BY 4.0
+                            OpenStax Precalculus 2e - CC BY 4.0
+    06 Calculus\            OpenStax Calculus Volume 1/2/3 - CC BY 4.0
+    07 Probability - Statistics\ OpenStax Introductory Statistics 2e - CC BY 4.0
+    08 Data Science - Probability\
+                            OpenIntro Statistics 4e - CC BY-SA 3.0
+                            Grinstead & Snell "Introduction to Probability"
+                            (Dartmouth) - GNU Free Documentation License
+- _LICENSE_README.txt updated with source, license and course mapping for
+  every file. No copyrighted Turkish sources were added.
+- Library now totals 13 books, ~1130 MB, covering every current course.
+
+TESTS
+- New suite: test_topic_knowledge.py (22 checks) - normalisation, fuzzy
+  lookup, entry-shape validation, real-history spot checks (Pythagoras,
+  Grassmann, Bayes, Newton+Leibniz), and live coverage measurement against
+  the actual Resources tree.
+- Total across the five suites: 1743 checks, all passing
+  (visual_math_lab 1362, language_dictionary 181, student_tracker 169,
+   topic_knowledge 22, workspace_docking_manager 49).
+
+BUILD
+- topic_knowledge added to hidden imports in both the .spec and the .bat.

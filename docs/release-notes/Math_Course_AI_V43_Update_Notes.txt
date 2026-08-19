@@ -1,0 +1,76 @@
+[Editorial note for the public release: this historical note was
+sanitised before publication. An absolute development path and the
+titles of a third party's commercial course catalogue were replaced
+with placeholders. Nothing else was changed.]
+
+Math Course AI - V43 Bugun Panosu + Aralikli Tekrar
+
+New in V43:
+
+DATA SAFETY (breaking-risk fix, automatic)
+- The SQLite databases (student_tracker.sqlite, language_dictionary.sqlite) moved from the
+  project folder (<your-project-folder>) to %APPDATA%\MathCourseAI\data.
+- A one-time automatic migration COPIES the old databases on first start. The old folder is
+  left untouched as a backup; nothing is deleted or overwritten.
+- Why: user data in the program folder does not survive moving the program, reinstalling, or
+  a PyInstaller rebuild. Settings/progress/token logs were already in %APPDATA%; now ALL user
+  data lives there. New shared module: app_paths.py.
+- question_packs/ stays program-relative (it is program content, not user data), but the path
+  is now resolved from the program location instead of a hardcoded D:\ path.
+
+BUGUN (TODAY) DASHBOARD - new first sub-tab in Student Tracker
+- Four live cards: "Tekrar vakti" (spaced-repetition questions due today), "Yanlislar",
+  "Denenmemis", "Dogruluk" (+ exam average).
+- One-click drills: Tekrar Sinavi / Yanlis Drill / Yeni Soru Sinavi buttons build and start a
+  targeted exam immediately (buttons disable themselves when their pool is empty).
+- Weak-topics list and per-course solved-progress bars answer "nerede kaldim, ne calisayim?"
+  at a glance.
+
+SPACED REPETITION (Leitner)
+- Every question now gets a review date computed from its attempt history - no schema change:
+  wrong/review -> due immediately; each consecutive solve pushes the next review out
+  (1, 3, 7, 14, 30, 60 days).
+- New exam pool "Tekrar Vakti" runs exactly the questions whose review date has arrived.
+- New analytics: due_questions / due_summary / course_progress (all headless-testable).
+
+SMARTER ANSWER CHECKING (sympy)
+- The exam's auto-check now understands mathematical equivalence, not just string equality:
+  '0.5' == '1/2', 'x = 2' == '2', 'y=3, x=2' == 'x=2, y=3', '12π' == '12pi', '2x+2x' == '4x',
+  "f'(x) = 6x + 2" == '6x+2'.
+- Verdicts shown in the exam: ESLESTI (exact) / ESDEGER (equivalent) / FARKLI gorunuyor /
+  karar verilemedi. The student still makes the final Dogru/Yanlis call.
+- Plain words are never judged (they parse as text, not math).
+
+QUESTION BANK UX
+- Rows are colour-coded by status: green = cozdum, red = yanlis, amber = tekrar.
+- The list footer shows live counts: N soru - X cozdum - Y yanlis - Z tekrar - W denenmemis.
+- Exam questions are now timed per question (duration_sec recorded on each exam item).
+
+READING PROGRESS - "hangi konudayim, neyi bitirdim?"
+- Right-click any file in Kurs Kaynaklari: "Bitirdim" / "Okunuyor" / "Isareti kaldir".
+- File icons show the state: [done] / [reading] / [unread]; each course header shows
+  "Kurs adi - 3/12 done".
+- Opening a PDF automatically marks it "Okunuyor" (unless already done).
+- Kurs Takibi panel: a "Kaldigin yer" card with a "Devam Et" button reopens the most recently
+  opened resource; each course also shows an automatic "X/Y dosya bitti" reading bar next to
+  the manual Progress % field.
+- Read marks are stored in course_progress json under a "files" map; tree updates in place so
+  open sections do not collapse.
+
+UI DECLUTTER
+- The five science labs (Veri/Fizik/Kimya/DNA/Kuantum) collapse into ONE "Lab'lar" menu chip
+  on the workspace bar - the bar drops from 13 chips to 9. Each lab is still its own
+  workspace/tab and can be hidden from the Workspace Manager as before.
+- The cryptic "X Duzeni: X+ / X- / X+ / X-" control is now "Duzen: Klasik / Ayna / Cift
+  Pencere" with descriptive settings-menu labels.
+
+TESTS
+- test_student_tracker.py grew from 119 to 152 checks: answer_verdict equivalence table,
+  Leitner srs_schedule cases, due-queue/dashboard analytics, exam-from-ids drill,
+  6-sub-tab panel with dashboard cards.
+- Total across the four suites: 1744 checks, all passing
+  (visual_math_lab 1362, language_dictionary 181, student_tracker 152, docking 49).
+
+BUILD
+- app_paths added to hidden imports in both the .spec and the .bat.
+- Reminder: the EXE is a snapshot of the source at build time - rebuild after source changes.

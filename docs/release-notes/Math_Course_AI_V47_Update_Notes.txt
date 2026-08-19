@@ -1,0 +1,76 @@
+[Editorial note for the public release: this historical note was
+sanitised before publication. An absolute development path and the
+titles of a third party's commercial course catalogue were replaced
+with placeholders. Nothing else was changed.]
+
+Math Course AI - V47 UI/UX Duzeltmeleri (Dongu Muhendisligi - Tur 2)
+
+This round applied the Generate -> Evaluate -> Revise -> Finalize loop to the
+UI itself: the app was actually launched and inspected on screen (not just
+read as code), real defects were found, fixed, and the fixes were re-verified
+visually before shipping - exactly the workflow the user asked for.
+
+CRITICAL FIX: raw LaTeX was showing in the topic info window
+- Every one of the ~370 topic_knowledge entries (V45/V46) was written with
+  light LaTeX math notation ($\sqrt{x}$, $x^2$, \cdot, \pi, etc.), but the
+  info window displayed it as a PLAIN tk.Text widget with no rendering -
+  users were seeing literal dollar signs, backslashes and braces instead of
+  math. This affected every single documented topic.
+- Fix: new topic_knowledge.delatex() function downgrades the LaTeX to
+  readable plain Unicode for display (no image rendering needed, keeps text
+  selectable/copyable): \sqrt{x} -> √(x), \dfrac{a}{b} -> (a)/(b) with
+  correct handling of NESTED braces (e.g. \dfrac{-b+\sqrt{...}}{2a}), x^2 ->
+  x², a_1 -> a₁, Greek letters (\pi -> π, \lambda -> λ, ...), common symbols
+  (\cdot -> ·, \times -> ×, \leq -> ≤, \to -> →, \|v\| -> |v|, ...). Complex
+  sub/superscript content (spaces, arrows - e.g. \lim_{h\to 0}) falls back to
+  parentheses instead of producing per-character garbage.
+- Verified against all 665 embedded entries: zero leftover backslashes,
+  braces, or dollar signs after conversion. Two source entries that used
+  LaTeX matrix/cases environments (\begin{pmatrix}, \begin{cases}, which
+  delatex intentionally does not attempt to parse) were rewritten to the
+  plain bracket notation already used consistently elsewhere.
+- Applied uniformly to embedded bodies AND any AI-generated fallback answers
+  (which follow the same $...$ convention per their system prompt).
+
+REGRESSION FIX: the <third-party course title>-style tick/info columns were hidden by default
+- The V44 resizable-panel change set the tree's name column to width=430,
+  which is wider than the default 350px panel - this silently pushed the
+  ☐ (bitirdim) and ℹ (info) columns outside the visible area, requiring an
+  easy-to-miss horizontal scroll to reach them. Caught by actually launching
+  the app and looking, not by re-reading the code.
+- Fix: name column width reduced to 258 (fits the default panel alongside
+  both extra columns with no scrolling needed) while keeping stretch=True,
+  so widening the panel via the drag grip still gives the name column the
+  extra room - the ☐/ℹ columns stay pinned and visible at every panel width.
+  Added Shift+MouseWheel as a horizontal-scroll shortcut for the rare case
+  of an extremely narrowed panel.
+
+CLARITY FIX: the ✅ in course headers was shown even at 0% done
+- "<third-party course title> — 0/125 ✅" read as if the course were
+  finished. Fixed: the checkmark now only appears at done == total; 0 done
+  shows a plain count, partial progress shows a percentage.
+
+DECLUTTER: the Kurs Takibi (course tracker) panel was very long
+- With 8 courses now in the resource tree, every course showed BOTH an
+  automatic reading-progress bar (from file tick marks) AND a manual
+  Progress%/Difficulty control with its own second progress bar - mostly
+  duplicating the automatic signal and making the panel require heavy
+  scrolling.
+- Fix: manual Progress%/Difficulty is now collapsed by default behind a
+  small "▾ Elle ilerleme/zorluk" toggle per course (nothing removed, one
+  click away) so each course takes ~3 compact lines instead of ~6-7.
+
+TESTS
+- test_topic_knowledge.py: new test_delatex (structural nesting, Greek
+  letters, complex-subscript fallback, norm bars, a full sweep of all 665
+  entries asserting zero leftover LaTeX artifacts). Suite grew to 40 checks.
+- Total across the five suites: 1801 checks, all passing (visual_math_lab
+  1362, language_dictionary 181, student_tracker 169, topic_knowledge 40,
+  workspace_docking_manager 49).
+
+METHOD NOTE
+- This round is a concrete example of why "evaluate" must mean actually
+  looking at the running app, not just re-reading the source: three of the
+  four defects above (raw LaTeX, hidden tick/info columns, misleading
+  checkmark) were invisible from the code alone and only surfaced once the
+  app was opened, clicked through, and zoomed into on screen.

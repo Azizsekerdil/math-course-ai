@@ -1,0 +1,14 @@
+# Optional features. The program starts and the tests pass without any of these.
+#
+# Install these ALONGSIDE the pinned base set - the -r line below makes that
+# explicit so a resolver cannot silently pick an old transitive Pillow.
+-r requirements.txt
+
+# pymupdf is AGPL-3.0-or-commercial. It is NOT a required dependency and is NOT
+# distributed by this project: install it yourself if you want in-app PDF
+# rendering, and read THIRD_PARTY_NOTICES.md section 1 first.
+pymupdf==1.27.2.3          # AGPL-3.0-or-commercial - in-app PDF rendering
+opencv-python==4.13.0.92   # Apache-2.0 - image pre-processing in the labs
+pytesseract==0.3.13        # Apache-2.0 - OCR (also needs a Tesseract binary)
+python-docx==1.2.0         # MIT - Word export
+python-pptx==1.0.2         # MIT - presentation generation

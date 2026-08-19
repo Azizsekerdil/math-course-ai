@@ -1,0 +1,14 @@
+# Required to start Math Course AI and run the test suites.
+# Pinned to the versions this release was tested against.
+#
+# Everything with a copyleft or an extra system dependency lives in
+# requirements-optional.txt instead - see THIRD_PARTY_NOTICES.md.
+sympy==1.14.0
+numpy==2.4.6
+matplotlib==3.11.0
+pillow==12.3.0
+requests==2.34.2
+# Transitive, pinned explicitly: a resolver left free picks the oldest
+# idna that requests allows, which carries a known advisory.
+idna==3.19
+pywin32==312 ; sys_platform == "win32"

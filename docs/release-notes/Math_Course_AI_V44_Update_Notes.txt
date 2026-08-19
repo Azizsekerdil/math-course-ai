@@ -1,0 +1,96 @@
+[Editorial note for the public release: this historical note predates the optional cloud AI provider, and its "offline" / defect-free wording is no longer accurate. See README.md and docs/known-limitations.md for the current, corrected statement.]
+
+[Editorial note for the public release: this historical note was
+sanitised before publication. An absolute development path and the
+titles of a third party's commercial course catalogue were replaced
+with placeholders. Nothing else was changed.]
+
+Math Course AI - V44 Soru Bankasi + Etkilesimli Sinav
+
+Implements the "Dijital Matematik Soru Bankasi" system specification
+(dijital_matematik_soru_bankasi_SPEC.pdf, kept in the project root).
+
+<third-party course title>-STYLE COURSE TRACKING
+- The resource tree now has a checkbox column: click the box next to any file to
+  toggle "Bitirdim" - exactly like ticking a <third-party course title> lecture. Clicking the box does
+  NOT open the file; clicking the name still does.
+- The tree is grouped under two roots: "Dersler" (the course lessons) and
+  "Soru Bankalari" (question-bank books). Course headers keep the x/y done counter.
+
+OPEN-LICENSED QUESTION BANK LIBRARY (Resources\Soru Bankalari)
+- Downloaded, verified and organised six openly licensed books (~274 MB, thousands
+  of practice exercises with answer keys):
+    01 Pre-Algebra\  OpenStax Prealgebra (CC BY 4.0) - 1146 pages
+    02 Algebra\      OpenStax Elementary Algebra 2e / Intermediate Algebra 2e /
+                     College Algebra 2e (CC BY 4.0) - 1290/1335/1073 pages
+    03 Linear Algebra\ Hefferon Linear Algebra + Answer Key (CC BY-SA) - 525/404 pages
+- _LICENSE_README.txt records source, licence and attribution for every file.
+- No openly licensed geometry book exists at OpenStax; noted in the README.
+- Turkish MEB/OSYM banks remain copyrighted and are NOT included.
+
+PDF QUESTION CROPPING ("Soru Kirp")
+- New crop mode in the PDF reader toolbar: drag a rectangle around any question;
+  the region is cut at 2.5x resolution and saved to APPDATA\MathCourseAI\data\
+  question_images.
+- A metadata dialog opens with the cropped image: course (prefilled), topic,
+  difficulty, answer, optional LaTeX question text, A-E choices and the correct
+  letter. One click adds it to the question bank with source PDF + page recorded.
+
+LATEX LIVE PREVIEW (KaTeX equivalent, fully offline)
+- The question form has a "Canli LaTeX onizleme" toggle: while typing, $...$
+  segments are rendered via matplotlib mathtext (fractions, roots, powers,
+  integrals, Greek letters) with a 450 ms debounce.
+- Broken LaTeX shows a clear error instead of crashing.
+- Exam questions containing $...$ are shown as rendered math automatically.
+
+INTERACTIVE EXAM (Dijital Cozum)
+- Clickable A-E choice buttons when a question has options; the selected letter
+  fills the answer automatically.
+- For choice questions grading is definitive: reveal shows "Dogru sik: C - senin
+  secimin: B -> YANLIS", and the buttons colour green (correct) / red (your wrong pick).
+- Question images (cropped from PDFs) are displayed inside the exam.
+- Karalama Alani: a drawing canvas under every exam question - pen and eraser,
+  works with mouse or pen tablet, clears automatically on the next question.
+- Per-question duration is recorded (duration_sec on each exam item).
+
+GRAPHICAL STATISTICS
+- The Istatistik tab now embeds two live matplotlib charts:
+  - per-topic accuracy bars - weak topics (<50%) are red, mid (50-75%) amber,
+    strong green;
+  - exam score trend line with a 50% reference line.
+- Spaced repetition (V43 Leitner engine) keeps feeding the "Bugun" dashboard;
+  wrongs surface immediately, solved questions return in 1/3/7/14/30/60 days.
+
+LM STUDIO STABILITY + API TEST SCREEN
+- /v1/models is now cached for 60 s and a transient failure falls back to the
+  last known model list - a brief server hiccup no longer kills the AI boxes.
+- Completions retry once automatically on timeouts/connection resets; HTTP
+  errors fail fast. Error messages now tell the user what to check.
+- API Test is a full window instead of a popup: connection + profile report,
+  "Yeniden Test Et", and a prompt-template tester with four editable Turkish
+  templates (Soru Coz / Kavram Acikla / Cevap Kontrol / Ceviri), profile picker,
+  and latency + token metrics for every run.
+
+SCHEMA
+- questions table gained choices (JSON) and correct_choice columns via the safe
+  idempotent migration; existing databases upgrade automatically.
+
+TOPIC INFO (i) - "NEDIR VE NE ICIN KULLANILIR?"
+- Every file AND section folder in the resource tree has an (i) column next to
+  the tick column. Clicking it opens a separate window for that topic.
+- The window asks the local LM Studio math model to explain the topic in a fixed
+  structure: an everyday analogy, "Nedir?" (definition, English name once,
+  $...$ LaTeX where needed), then "Ne Icin Kullanilir?" with 2-4 numbered
+  real-world / software / science uses.
+- Explanations are cached in %APPDATA%\MathCourseAI\topic_info_cache.json:
+  the second click opens instantly and works fully offline. "Yeniden Uret"
+  regenerates, "Kopyala" copies the text. Numbering like "03 " is stripped from
+  file names automatically ("03 Domains of composite functions.pdf" ->
+  "Domains of composite functions").
+- If LM Studio is closed the window shows a clear warning + retry button.
+
+TESTS
+- test_student_tracker.py: 169 checks (new: choices round-trip, choice trimming,
+  exam-item media columns, mathtext render + broken-LaTeX error, headless panel
+  choice buttons and scratch pad).
+- Total across the four suites: 1761 checks, all passing.

@@ -1,0 +1,91 @@
+Math Course AI - V42 Student Tracker + Question Packs
+
+New in V42:
+
+STUDENT TRACKER (new workspace)
+- Added a Student Tracker workspace with five sub-tabs: Ogrenci / Soru Bankasi / Soru Paketleri / Sinav / Istatistik.
+- Student profiles: multiple learners, each with an independent history; one active student at a time.
+- Question bank: add questions with course, topic, difficulty, answer, tags; attach the selected PDF + page
+  as the source with "Secili PDF'den al"; bulk import from a text block ("soru = cevap" or "soru | cevap")
+  and CSV import/export.
+- Solved / unsolved tracking: every question can be marked Cozdum, Yanlis, Tekrar or Cozulmedi per student.
+  The latest attempt wins and the full attempt history is kept.
+- Filters: course, topic, difficulty, status, pack and free-text search.
+- Exam engine: build a test from the bank by course/topic/difficulty/count with a target pool
+  (Hepsi / Cozulmedi / Yanlis / Tekrar), answer question by question, reveal the stored answer,
+  self-mark Dogru/Yanlis, then get an automatic score, correct count and duration.
+- Exam results sync back into the bank: questions missed in a test are marked "Yanlis" automatically,
+  so the pool="Yanlis" drill closes the learning loop.
+- Progress analytics: overall accuracy, per-topic mastery table, weakest topics, recent exam list,
+  exam average.
+- Data is stored in data\student_tracker.sqlite with safe, re-runnable migrations.
+
+QUESTION PACKS (new)
+- Added a question pack system with selection, filtering, preview, import and management.
+- Built-in procedural generators produce the question AND its exact answer from original program code:
+  unlimited, bilingual Turkish/English, and free of any third-party licence.
+- Five built-in packs mapped to the course folders: prealgebra_core, algebra_core, geometry_core,
+  linear_algebra_core, calculus_intro (arithmetic, fractions, percentages, integers, linear and
+  quadratic equations, systems, exponents, slope, area/perimeter, Pythagoras, circles, determinants,
+  matrix addition, dot product, polynomial derivatives).
+- External openly licensed packs can be added as JSON in the question_packs\ folder. The pack licence
+  and attribution are stored with every imported question. A pack without a licence is flagged UNKNOWN
+  and the program asks for confirmation before importing it.
+- Imports are de-duplicated; imported packs can be removed again with "Bu Paketin Sorularini Sil".
+
+LICENCE POLICY
+- Turkish question banks (MEB / EBA / OGM Materyal, OSYM archives and commercial publishers) are
+  copyrighted and are deliberately NOT bundled. Research confirmed no openly licensed Turkish math
+  question bank exists, so the Turkish need is met by the built-in generators instead.
+- Known openly licensed English sources are documented in README.md for optional self-import
+  (OpenMathInstruct-1 CC BY 4.0, DeepMind mathematics_dataset Apache-2.0, Kaggle Mathematical
+  Problems CC0, UCI MathE CC BY 4.0).
+
+AI ASSISTANTS
+- Calculator: added an "Ask AI" chat box with multi-turn memory. It auto-sends the current expression,
+  result and RAD/DEG mode as context (toggleable), so "bu sonucu acikla" works. A "Sonucu Hesapla"
+  bridge extracts the expression from the AI answer and evaluates it with the LOCAL exact engine,
+  guarding against LLM arithmetic slips. Uses the math model profile; runs off-thread; never freezes
+  the UI; shows a clear warning when LM Studio is closed.
+- Dictionary: added an "Ask AI about this term" box under the explanation panel. It injects the term,
+  translation, definition, category and source context so even "bunu daha basit anlat" resolves to the
+  right word. Q&A are logged to the dictionary_ai_questions table.
+
+LAYOUT AND UI
+- X Duzeni: three layout modes selectable from the workspace bar and Settings:
+  X+ (classic), X- (mirror: resources right), and X+ / X- (dual) which opens TWO independent
+  full-width reader windows (each with its own resource tree and PDF viewer, own page/zoom/annotations)
+  and empties the main window body. Window positions and sizes are remembered.
+- Session restore: the last PDF, page, zoom and active tab are saved on exit and restored on start.
+- Rebranded to "Math Course AI" (window title and in-app header single-sourced from APP_NAME).
+  The AppData folder moved to %APPDATA%\MathCourseAI with a one-time automatic migration that
+  preserves existing settings, progress, token logs, annotations and reports.
+- The Wacom board is now brand-neutral: "Tablet Cizim Tahtasi". Help text reads
+  "Mouse, kalemli ekran veya cizim tableti ile ciz...". Internal names were kept for compatibility.
+- UI polish: flat/modern ttk styling, themed Spinbox and Radiobutton, defined input borders with an
+  amber focus ring, slimmer scrollbars, and a live progress bar per course in the tracker panel.
+
+BUG FIXES
+- Fixed: left-clicking a notebook tab silently hid that workspace. ttk.Notebook.bbox() returns
+  (0,0,0,0) for tab headers, which made the old "x close zone" test true for EVERY click.
+  Left-click now only selects. Closing is explicit: the x button on the top workspace bar, or a
+  middle-click on the tab. The misleading x marker was removed from notebook tab labels.
+
+BUILD
+- build_math_course_ai_exe.bat and Math Course AI.spec now declare the project modules as hidden
+  imports (student_tracker, question_packs, language_dictionary, visual_math_lab, visual_lesson_card,
+  workspace_docking_manager, command_registry, ui_preferences, embedded_* , course_simulation_library)
+  plus sympy and matplotlib, so lazily imported modules are not dropped from the EXE.
+- Reminder: the EXE is a snapshot of the source at build time. Rebuild after source changes, or run
+  python Math_Course_AI.pyw directly for the newest build.
+
+TESTS
+- New suite: test_student_tracker.py (119 checks, includes the headless panel and an end-to-end exam).
+- Total across the four suites: 1711 checks
+  (test_visual_math_lab 1362, test_language_dictionary 181, test_student_tracker 119,
+   test_workspace_docking_manager 49).
+
+DOCUMENTATION
+- Added README.md: program description, feature list, workspaces, Student Tracker and Question Pack
+  guides, LM Studio setup and model profiles, data/privacy locations, build instructions, tests,
+  project structure, licence notes and version history.

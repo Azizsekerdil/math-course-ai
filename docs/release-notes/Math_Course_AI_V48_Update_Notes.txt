@@ -1,0 +1,223 @@
+[Editorial note for the public release: this historical note predates the optional cloud AI provider, and its "offline" / defect-free wording is no longer accurate. See README.md and docs/known-limitations.md for the current, corrected statement.]
+
+Math Course AI - V48 AI Terminali, Koyu Tema & Modul Bolunmesi
+
+The biggest release since the program moved to git. V47 closed a UI/UX
+review round; V48 is where the program grew a second AI provider, a night
+theme, a written user guide, an accounting ledger for AI usage, and where
+the 7500-line main file was finally broken into modules. Everything below
+shipped between the V47 tag and this note, in the order it was built.
+
+
+NEW WINDOW: AI TERMINAL ("Ayarlar > Ayar > AI Terminali")
+- A terminal where you dictate code and small jobs to an AI and get runnable
+  output back. Two providers, chosen from a dropdown:
+    * Local (LM Studio) - nothing leaves your computer, uses the client the
+      rest of the program already uses.
+    * NVIDIA NIM - three free endpoints picked from build.nvidia.com and
+      verified live: z-ai/glm-5.2 (fastest, ~4-7 s),
+      nvidia/llama-3.3-nemotron-super-49b (~42 s) and openai/gpt-oss-120b
+      (~68 s, depends on queue). Answers stream in; "Durdur" cancels.
+- SAFETY: generated code NEVER runs by itself. The "▶" button shows the
+  complete code in a separate approval window first. Only after you approve
+  does it run - in a child process (python -I), inside a work folder under
+  %APPDATA%, with a 180 second timeout, and the output lands in the terminal.
+- The API key is never written to disk in plain text. It is read from the
+  NVIDIA_API_KEY environment variable, then from Windows Credential Manager
+  (MathCourseAI/NVIDIA). The window only ever shows it masked.
+- The window states plainly that NIM trial endpoints log requests on
+  NVIDIA's side - so you know exactly when a request leaves the machine.
+
+NEW WINDOW: EDUCATION & INTRODUCTION GUIDE (education.py)
+- A complete, offline, single-page HTML user guide that opens in your
+  browser: 19 chapters, ~3250 words, 37 "why -> result -> benefit" blocks
+  and 18 tables covering every part of the program.
+- Sticky table of contents, colour/greyscale print strip, A4 print CSS - so
+  it can be printed or handed to someone else as a document.
+- Bilingual (TR/EN) with IDENTICAL anchor ids, so deep links work in both
+  languages.
+- Reachable from the Settings menu AND from the empty-state welcome card -
+  the place a brand new user will actually be looking.
+
+NEW WINDOW: TOKEN USAGE LEDGER (token_ledger.py)
+- Replaces the old "dump the raw JSON" screen. Summary cards (today / last
+  7 days / last 30 days / all time), tables grouped by model, provider, job
+  and day, a listing of the last 300 records, and CSV export.
+- A real gap was found and closed while building it: NVIDIA requests were
+  not being logged at all (they never passed through LMStudioClient). The
+  terminal now writes its own record and the log schema gained a "provider"
+  field. Old records still read correctly (missing provider = "yerel", the
+  only provider that existed back then; a missing profile is marked "?"
+  rather than invented).
+- Honesty rules: cost is 0 for both providers today (local runs on your own
+  machine, NIM trial endpoints are free) but the price table is kept for
+  the future, and an UNKNOWN model is never presented as if it were free.
+  The ledger stores counters only - never the text of your requests.
+
+DARK THEME (Settings menu and Settings window: "Tema: ☀ Acik / 🌙 Koyu")
+- A warm night palette that keeps the program's identity: dark brown
+  surfaces, ivory ink, the same amber accent. Default stays light.
+- Applied at startup (the THEME dictionary is updated before styles and
+  widgets are built); live switching is deliberately absent - colours are
+  read at construction time, so changing the setting shows a "applies after
+  restart" note.
+- Covers the main interface, every tab, Student Tracker, Dictionary, the
+  tablet drawing board (background/grid/ink), the calculator, the PDF canvas,
+  the statistics charts, and the combobox dropdown lists.
+- Deliberate light islands (documented in ONERILER.md): PDF pages themselves,
+  the LaTeX preview, the older Visual Math visualiser paths, and lesson-card
+  posters - these are content, not chrome.
+- Ten contrast defects found by looking at the running app in dark mode were
+  fixed before release (white calculator keys, leftover hard-coded #FFFFFF
+  boxes in Chemistry Tools and the classic dictionary, invisible exam choice
+  buttons, matplotlib's default black tick labels, the whiteboard's "Black"
+  pen which vanished on a dark board and is now "Ink").
+
+TIMED EXAM MODE
+- The Exam tab gained a "⏱ Sure (dk)" spinbox (0-180; 0 = untimed, exactly
+  the old behaviour). With a duration set, a live countdown runs (red in the
+  last 60 seconds) and the exam finishes automatically when time runs out;
+  the summary says plainly that time expired.
+- One-click drills from the Today dashboard are deliberately untimed.
+- Three defects fixed during review: the summary claimed unanswered
+  questions "did not count" when they were in fact counted wrong (the text
+  now matches reality, and the note appears whenever anything is left
+  unanswered, not only on timeout); skipped questions were being counted as
+  answered; a malformed manual entry in the spinbox ("3o") silently started
+  an untimed exam instead of warning.
+
+FIVE SCIENCE LABS MERGED INTO ONE "🧪 Lab'lar" TAB
+- The main tab strip went from 12 tabs to 8: Data, Physics, Chemistry, DNA
+  and Quantum now live in an inner notebook inside one Labs tab. Old configs,
+  the chip menu, Workspace Manager and old session records (session.tab =
+  "Physics") all keep working unchanged. Panels build lazily.
+- IMPORTANT DISCOVERY - a silent bug that had been there for years: in ttk,
+  insert() moves a hidden tab but does NOT make it visible again. Every tab
+  refresh was therefore leaving all tabs except the selected one hidden
+  (verified against the old build: with an all-visible config, only 2 of 12
+  tabs actually showed). The workspace chips masked it by calling select()
+  one at a time, which is why nobody noticed. Fixed by setting
+  state="normal" in both the outer and inner loops.
+
+STARTUP SCREEN CHOICE
+- New "startup_view" setting ("last" = default, "today"): the program can
+  open on Student Tracker > Today dashboard instead of the last session's
+  tab. PDF restore still works either way. Changeable from both the Settings
+  window and the ☰ Settings menu.
+
+QUESTION PACK EXPORT ("📤 Paketi Disa Aktar")
+- Export a filtered view of your question bank to the same JSON pack format
+  the importer already reads, with licence, attribution and source URL
+  attached. Drop the file into a friend's question_packs/ folder and it
+  imports straight from the Question Packs tab.
+- The importer was extended (backwards compatible): A-E multiple-choice
+  questions now keep their choices when shared.
+- Four review findings fixed: each row's own course/lang is now written
+  (a mixed bank was stamping English questions as Turkish and dropping the
+  course); export no longer hits the view's implicit 1000-row limit; the
+  question_packs/ folder is created before the file dialog opens; the dialog
+  now shows "will be written" and "will be skipped" separately.
+
+EMPTY-STATE WELCOME CARD
+- If Resources/ is empty, missing, or contains no real course files, a three
+  step start card appears above the resource tree: 1) pick a folder,
+  2) optional LM Studio settings, 3) start right now with the built-in
+  question packs - the program now says out loud that it is usable with no
+  PDFs at all.
+- The card appears and disappears correctly on every scan trigger and is
+  rebuilt on language change. It wraps dynamically instead of clipping in a
+  narrow panel.
+
+PERSISTENT AI STATUS INDICATOR (top bar)
+- Three states: 🟢 AI ready · <model> / 🟡 server up but no model loaded /
+  🔴 AI off (offline features still work). A background thread polls the
+  /v1/models endpoint every 30 seconds. Clicking it opens the API Test window.
+- False-green fixed: the response body was never being read, so a server
+  with no model loaded still showed green with the configured model name.
+  The body is now parsed, and the model shown is the one requests will
+  ACTUALLY use.
+- Visibility fixed: the indicator used to be the first widget to disappear in
+  a narrow window - precisely in the "AI is off" case. It is now packed first
+  (far right) and long messages are trimmed at 90 characters.
+- A pre-existing bug surfaced and was fixed here: on a cold start (empty
+  model cache + server down) complete() raised inside choose_profile_model,
+  killing the AI worker and leaving worker_busy stuck - AI buttons stayed
+  locked until restart.
+
+STARTUP TIME: 3.5 s -> 1.9 s (45% FASTER)
+- Three lazy loads: Visual Math Lab (module and panel, ~1.5 s of
+  sympy+matplotlib, now built when the tab is first selected, with a
+  "loading" label and a visible error if it fails); pytesseract (dragged
+  pandas in for ~0.7 s and is only needed for image questions); python-docx.
+- Measured on the same machine, 3 runs: import 1385 -> 330 ms, total startup
+  3496 -> 1900 ms.
+
+MODULE SPLIT: THE MAIN FILE WENT FROM 7569 TO 3220 LINES
+- The 305 KB single-file application was split into seven modules, verbatim,
+  in four steps:
+    mca_common.py        - app identity/paths, model defaults, small helpers,
+                           THEME + DARK_THEME, RoundedButton
+    lm_studio_client.py  - the LM Studio client
+    science_labs.py      - the five science lab classes (2083 lines)
+    whiteboard.py        - the tablet drawing board
+    pdf_viewer.py        - PDF viewer, annotation, ✂ crop, mirror panel
+    calculator.py        - scientific calculator + AI chat box
+    classic_dictionary.py- the embedded fallback dictionary
+- Because the main file runs as __main__ (it is a .pyw), other modules
+  cannot import from it - everything shared lives in mca_common. THEME is
+  shared as the same dict object, so the dark-theme mutation is visible in
+  every module.
+- Verified with pyflakes at every step (zero undefined names) and with the
+  full test suites plus the dark/light and lab smoke scenarios. Afterwards,
+  11 stdlib imports and 7 unused names left behind by the move were removed.
+
+MODEL PROFILES: FLEXIBLE RESOLUTION + JSON OVERRIDE
+- DEFAULT_PROFILES is now a starting point with three override layers:
+  model_profiles.json (DATA_DIR) > SQLite profiles (from the UI) > defaults.
+  The winner is then resolved against the models actually installed, so
+  removing or renaming a model degrades quality instead of breaking a
+  feature. A corrupt override file is ignored, not fatal.
+- A real routing bug was fixed: high_quality_translation had a bare
+  "mistral" keyword, so once mistral-small was removed the pattern matched
+  biomistral-7b - academic translation would have been done by a biomedical
+  model. Broad patterns now come after specific ones and every chain ends
+  with a general-purpose model.
+
+REPOSITORY & COLLABORATION (not user-visible, but part of this release)
+- MIT LICENSE, CONTRIBUTING.md, .gitattributes; the post-commit hook now
+  handles multi-person main (push rejected -> fetch + rebase -> push again,
+  and it touches nothing if the tree is dirty or a conflict appears).
+- GitHub auto-push hook + Google Drive RAR backup + a daily scheduled task
+  (scripts/), with per-user paths kept out of the repo.
+- 74 manual *_backup_before_* files were removed from the repository (they
+  remain on the owner's disk and in git history) - git does that job now.
+- ONERILER.md: a measurement-based evaluation document (purpose, vision,
+  four personas, prioritised UI/UX suggestions, optimisation candidates).
+  All nine items in its table are now done.
+- GELECEK_ISLER.md: ready-to-paste prompts for the next ten larger jobs and
+  five small ones.
+
+TESTS
+- Two new suites: test_ai_terminal.py (20 checks: block parsing, payload
+  rules, key masking/priority, a keyless call failing without touching the
+  network, window construction) and test_egitim_token.py (51 checks: HTML
+  integrity, a broken-anchor sweep of the guide, TR/EN anchor parity, ledger
+  normalisation backwards compatibility, summary/grouping/cost/CSV, and a
+  read-only pass over the real ledger).
+- Existing suites grew with each feature: student_tracker 169 -> 199
+  (pack export round-trip, timed exam), language_dictionary 181 -> 189
+  (profile resolution, the biomistral regression).
+- Total across the eight suites: 1910 checks, 0 failures
+  (visual_math_lab 1362, student_tracker 199, language_dictionary 189,
+  egitim_token 51, workspace_docking 49, topic_knowledge 40,
+  ai_terminal 20).
+
+METHOD NOTE
+- Every feature in this release went through the same loop the user asked
+  for: measure first, build the most valuable subset properly, then run a
+  review round against the finished work and fix what it finds before
+  committing. The review rounds are where most of the bug fixes listed above
+  came from - the years-old hidden-tab bug, the false-green AI indicator,
+  the biomistral mis-routing, the export limit, the exam summary lying about
+  unanswered questions. None of them were visible from the feature
+  description alone.

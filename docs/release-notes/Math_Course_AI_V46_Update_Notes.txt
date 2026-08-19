@@ -1,0 +1,77 @@
+[Editorial note for the public release: this historical note predates the optional cloud AI provider, and its "offline" / defect-free wording is no longer accurate. See README.md and docs/known-limitations.md for the current, corrected statement.]
+
+[Editorial note for the public release: this historical note was
+sanitised before publication. An absolute development path and the
+titles of a third party's commercial course catalogue were replaced
+with placeholders. Nothing else was changed.]
+
+Math Course AI - V46 Konu Bilgi Bankasi - Tam Kapsam
+
+Round 2 of the embedded topic knowledge base ("Doengue Muehendisligi" /
+iterative loop engineering, as explicitly requested): closes almost the
+entire gap V45 left open.
+
+COVERAGE: 41% -> 99.9%
+- V45 shipped round 1: 140 entries / 272 keys, 274 of 668 real tree topics
+  (41%) resolved instantly.
+- V46 adds round 2 (topic_knowledge_round2.py): ~230 more entries / 383 more
+  keys. Measured live against the actual Resources tree: 667 of 668 distinct
+  "Notes by section" topic names (99.9%) now resolve to embedded content -
+  zero AI calls, fully offline.
+- The single remaining "gap" is a literally blank/stray file name ("10 .pdf"
+  in the Probability & Statistics course) with no real topic to document -
+  intentionally left undocumented rather than inventing content for a
+  filename artifact.
+- Per-course breakdown (all now 100% except one artifact):
+    <third-party course title> ......... 48/48
+    <third-party course title> ................ 124/124
+    <third-party course title> ................ 81/81
+    <third-party course title> .......... 70/70
+    <third-party course title> .............. 76/76
+    <third-party course title> .............. 130/130
+    <third-party course title> .............. 85/85
+    <third-party course title>  57/58 (1 blank filename)
+
+NEW GENUINE HISTORY ADDED THIS ROUND (no fabrication - only verifiable facts)
+- Galileo Galilei's 1589-1604 free-fall experiments (ball/coin drop problems)
+- Pierre de Fermat's 1630s "adequality" method - the pre-calculus precursor
+  to optimization via derivatives
+- Jean Frédéric Frenet (1847) and Joseph Alfred Serret (1851) - the
+  Frenet-Serret formulas behind curvature and the TNB frame
+- Pappus of Alexandria (~4th century CE) - his centroid theorem, one of the
+  most advanced results of ancient Greek geometry
+- François Viète's 1591 introduction of using letters for both known and
+  unknown quantities - the birth of symbolic algebra
+- Isaac Newton's 1701 Law of Cooling; Rutherford & Soddy's 1902-03 discovery
+  of radioactive half-life
+- Gabriel Cramer (1750), Adrien-Marie Legendre / Carl Friedrich Gauss
+  (least squares, 1795-1805 priority dispute), Johann Bernoulli (partial
+  fractions, ~1702), Blaise Pascal (hydrostatic pressure, 1653)
+- Leonhard Euler's 1768 Euler diagrams (distinct from Venn diagrams)
+- Pafnuty Chebyshev (1867) / Bienaymé (1853) - Chebyshev's Theorem
+- Fibonacci's 1202 "Liber Abaci" bringing Hindu-Arabic place value to Europe
+- Purely procedural topics (rounding, PEMDAS, balancing equations, unit
+  price, etc.) intentionally carry NO history section - only genuinely
+  attributable discoveries get one, consistent with V45's policy.
+
+ARCHITECTURE
+- New file topic_knowledge_round2.py imports `_add` from topic_knowledge.py
+  and populates the same shared TOPIC_KNOWLEDGE dict; topic_knowledge.py
+  imports it at the bottom of the file (self-registering plugin pattern) so
+  nothing else in the app needed to change.
+- This keeps the pattern extensible: a future round 3 can be a new
+  topic_knowledge_round3.py imported the same way, without touching the
+  existing files.
+
+TESTS
+- test_topic_knowledge.py grew from 22 to 27 checks: a new test_round2_merge
+  verifies the round-2 module is importable, spot-checks new genuine-history
+  entries (Galileo, Fermat, Frenet-Serret, Pappus), and confirms procedural
+  round-2 topics still carry NO fabricated history section. Coverage
+  thresholds raised (600+ keys, 650+ real-tree matches).
+- Total across the five suites: 1788 checks, all passing
+  (visual_math_lab 1362, language_dictionary 181, student_tracker 169,
+   topic_knowledge 27, workspace_docking_manager 49).
+
+BUILD
+- topic_knowledge_round2 added to hidden imports in both the .spec and .bat.

@@ -1,0 +1,65 @@
+# --- Course material & user data (third-party content / personal data) ------
+# Your own course PDFs: copyrighted third-party material, never redistributed
+# by this project. See LICENSE and THIRD_PARTY_NOTICES.md.
+Resources/
+Other Resourceses/
+
+# Generated synthetic demo library (regenerate with tools/make_demo_resources.py).
+demo_resources/
+
+# Personal runtime data. The live copy lives in %APPDATA%\MathCourseAI\data
+# (see app_paths.py); this pattern keeps a legacy or stray copy out of git.
+# NEVER commit anyone's study history.
+data/
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+
+# Local UI/session state and exports, not source.
+settings/
+exports/
+.test_deps/
+
+# --- Secrets ----------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+.netrc
+.pypirc
+.secrets.baseline
+
+# --- Build artifacts --------------------------------------------------------
+build/
+dist/
+*.spec
+*.spec.bak
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+
+# --- Generated presentation outputs (rebuild with tanitim_uret.py) ----------
+# The published deck lives in docs/presentation/ and IS tracked.
+Math_Course_AI_Tanitim*.pptx
+Math_Course_AI_Tanitim*.pdf
+Math_Course_AI_Tanitim*.html
+Math_Course_AI_Intro_EN*.pptx
+Math_Course_AI_Intro_EN*.pdf
+Math_Course_AI_Intro_EN*.html
+
+# --- Editor / tool local state ---------------------------------------------
+.claude/
+.vscode/
+.idea/
+*.swp
+
+# --- OS cruft ---------------------------------------------------------------
+Thumbs.db
+.DS_Store
