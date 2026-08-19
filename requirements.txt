@@ -4,7 +4,7 @@
 # Everything with a copyleft or an extra system dependency lives in
 # requirements-optional.txt instead - see THIRD_PARTY_NOTICES.md.
 sympy==1.14.0
-numpy==2.4.6
+numpy==2.5.2
 matplotlib==3.11.0
 pillow==12.3.0
 requests==2.34.2
