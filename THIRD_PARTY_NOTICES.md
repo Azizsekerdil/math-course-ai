@@ -17,18 +17,21 @@ creates an AGPL-3.0 derivative whose obligations — including the §13 network-
 source offer — an MIT root licence does not satisfy. **Root MIT does not cancel the
 AGPL obligation, and this project does not claim that it does.**
 
-**The decision: drop binary distribution from the public release scope.**
+**The decision: no binary published by this project bundles PyMuPDF.**
+(Until v1.0.0 the stronger rule "no binary distribution at all" applied; v1.0.0
+introduced release binaries, built and verified PyMuPDF-free as described below.)
 
 Concretely, in this repository:
 
 | Change | Evidence |
 |---|---|
-| The PyInstaller spec and the one-command EXE build script are **not present**. | `Math Course AI.spec` and `build_math_course_ai_exe.bat` are absent from the file listing. |
-| No binary, wheel, installer or bundle is built, published or attached to a release. | `.github/workflows/ci.yml` runs tests only; there is no packaging or release job. |
+| The old PyInstaller spec with `collect_all('fitz')` and the one-command EXE build script are **not present**. | `Math Course AI.spec` and `build_math_course_ai_exe.bat` are absent from the file listing; packaging uses `build_macos.sh` / equivalent CLI flags with no `collect_all('fitz')`. |
+| Release binaries (the Windows and macOS zips on v1.0.0) are built in environments where PyMuPDF is never installed, and the shipped bundles were byte-scanned for `pymupdf` / `mupdf` / `fitz`: zero MuPDF components. | `.github/workflows/build-macos.yml` (manual dispatch) + `build_macos.sh` install `requirements.txt` and the permissive optional packages only; scan performed on the exact uploaded assets. |
 | PyMuPDF is **not vendored** and **not installed by default**. It is listed in `requirements-optional.txt`, not `requirements.txt`. | See both files. |
 | Every `fitz` import is inside `try/except`, so the program runs without it. | `mca_common.py`, `pdf_viewer.py`, `course_simulation_library.py`, `language_dictionary.py`, `Math_Course_AI.pyw` |
 
-**Why that resolves it.** This project distributes only its own MIT-licensed source.
+**Why that resolves it.** This project distributes its own MIT-licensed source and
+binaries that contain only MIT/permissively-licensed components.
 It does not convey PyMuPDF to anyone. A user who chooses to `pip install pymupdf`
 obtains it directly from Artifex/PyPI under Artifex's terms and combines it with this
 program **for their own private use**, which the AGPL does not restrict.

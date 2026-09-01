@@ -358,7 +358,7 @@ def test_code_matches_docs():
 
     tpn = _read("THIRD_PARTY_NOTICES.md")
     check("AGPL-3.0" in tpn and "no binary" in tpn.lower(),
-          "THIRD_PARTY_NOTICES AGPL kararini ve ikili dagitmama sozunu yazar")
+          "THIRD_PARTY_NOTICES AGPL kararini ve ikililerin PyMuPDF icermedigi sozunu yazar")
     req = _read("requirements.txt").lower()
     check("pymupdf" not in req, "PyMuPDF ZORUNLU bagimliliklarda DEGIL")
     check("pymupdf" in _read("requirements-optional.txt").lower(),
