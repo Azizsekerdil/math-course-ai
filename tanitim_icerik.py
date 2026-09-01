@@ -45,10 +45,14 @@ SLAYTLAR = [
                 "bilgisayarında çalışır.",
                 "Everything you need while following a maths course in one "
                 "window — with the AI running on YOUR machine by default."),
-        "dipnot": (f"{VERSION}  ·  Windows · Python 3.11 · kaynak kod MIT "
-                   f"(ikili dağıtım yok — bkz. THIRD_PARTY_NOTICES.md)",
-                   f"{VERSION}  ·  Windows · Python 3.11 · source MIT "
-                   f"(no binary distribution — see THIRD_PARTY_NOTICES.md)"),
+        "dipnot": (f"{VERSION}  ·  Windows 10/11 (x64) + macOS (Apple Silicon) · "
+                   f"Python 3.11 · kaynak kod MIT — İndirme: "
+                   f"github.com/Azizsekerdil/math-course-ai/releases (v1.0.0); "
+                   f"ikili paketler PyMuPDF içermez (bkz. THIRD_PARTY_NOTICES.md)",
+                   f"{VERSION}  ·  Windows 10/11 (x64) & macOS (Apple Silicon) · "
+                   f"Python 3.11 · source MIT — Download: GitHub Releases (v1.0.0); "
+                   f"the binary packages contain no PyMuPDF (see "
+                   f"THIRD_PARTY_NOTICES.md)"),
     },
     # ──────────────────────────────────────────────────────────── sorun ──
     {
@@ -600,14 +604,42 @@ SLAYTLAR = [
         ],
         "dipnot": ("Bu deste CI rozeti ya da hatasızlık iddiası TAŞIMAZ: rozet "
                    "henüz olmamış bir koşu hakkında iddiadır. Gerçek durum "
-                   "Actions sekmesindedir. Lisans notu: kaynak kod MIT; isteğe "
-                   "bağlı PyMuPDF AGPL-3.0'dır ve bu depo ikili dağıtmaz "
-                   "(THIRD_PARTY_NOTICES.md).",
+                   "Actions sekmesindedir. Lisans notu: kaynak kod MIT; ikili "
+                   "paketler PyMuPDF içermez — PyMuPDF yalnızca kaynaktan "
+                   "isteğe bağlı kurulumdur (AGPL-3.0, THIRD_PARTY_NOTICES.md).",
                    "This deck carries NO CI badge and asserts NO defect-free "
                    "state: a badge asserts something about a run that has not happened "
                    "yet. The real state is in the Actions tab. Licence note: the "
-                   "source is MIT; the optional PyMuPDF is AGPL-3.0 and this "
-                   "repository distributes no binary (THIRD_PARTY_NOTICES.md)."),
+                   "source is MIT; the binary packages contain no PyMuPDF — "
+                   "PyMuPDF is an optional install from source only (AGPL-3.0, "
+                   "THIRD_PARTY_NOTICES.md)."),
+    },
+    # ─────────────────────────────────────────────── platformlar & indirme ──
+    {
+        "tip": "madde",
+        "baslik": ("⬇️ Platformlar & İndirme", "⬇️ Platforms & Download"),
+        "alt": ("Windows 10/11 (x64) + macOS (Apple Silicon) — İndirme: "
+                "github.com/Azizsekerdil/math-course-ai/releases (v1.0.0)",
+                "Windows 10/11 (x64) & macOS (Apple Silicon) — Download: "
+                "GitHub Releases (v1.0.0)"),
+        "ogeler": [
+            ("v1.0.0 sürümü yayında: github.com/Azizsekerdil/math-course-ai/"
+             "releases/tag/v1.0.0 — iki paket: Windows zip + macOS zip.",
+             "Release v1.0.0 is live: github.com/Azizsekerdil/math-course-ai/"
+             "releases/tag/v1.0.0 — two assets: a Windows zip and a macOS zip."),
+            ("Kaynak kod herkese açık: github.com/Azizsekerdil/math-course-ai "
+             "(MIT lisansı).",
+             "The source code is public: github.com/Azizsekerdil/math-course-ai "
+             "(MIT licence)."),
+            ("İkili paketler PyMuPDF içermez; PyMuPDF yalnızca kaynaktan "
+             "isteğe bağlı kurulumdur (AGPL-3.0, bkz. THIRD_PARTY_NOTICES.md).",
+             "The binary packages contain no PyMuPDF; PyMuPDF is an optional "
+             "install from source only (AGPL-3.0, see THIRD_PARTY_NOTICES.md)."),
+        ],
+        "dipnot": ("macOS paketi Apple Silicon (arm64) içindir ve notarize "
+                   "edilmemiştir — ilk açılışta sağ tık → Aç.",
+                   "The macOS build targets Apple Silicon (arm64) and is not "
+                   "notarised — first launch: right-click → Open."),
     },
     # ─────────────────────────────────────────────────────────── kapanış ──
     {
