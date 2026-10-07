@@ -14,7 +14,7 @@ jobs:
           cache: pip
       - name: macOS uygulamasini olustur
         run: chmod +x build_macos.sh && ./build_macos.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: Math-Course-AI-macOS
           path: dist/Math Course AI-macOS.zip
