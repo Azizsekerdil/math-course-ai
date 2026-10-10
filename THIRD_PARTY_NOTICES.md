@@ -119,6 +119,12 @@ Verified on the published files: the only embedded font programs are
 family (**Inter → Source Sans 3 → DejaVu Sans**) and reports honestly when none is
 installed. Its PPTX/HTML output is for editing, not for publication.
 
+The guided-tour PDFs (`docs/presentation/Math_Course_AI_Presentation_EN.pdf` and
+`Math_Course_AI_Sunum_TR.pdf`, rendered by `tanitim_tur.py`) embed TrueType subsets of
+**Inter** (SIL Open Font License 1.1, which permits embedding and redistribution) and
+**DejaVu Sans Mono** (DejaVu Fonts License) — verified with `pdffonts`; no other font
+program is embedded.
+
 ---
 
 ## 4. Scope of the MIT licence

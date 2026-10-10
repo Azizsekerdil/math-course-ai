@@ -156,6 +156,18 @@ python tanitim_pdf.py
 `tanitim_uret.py` builds the editable PPTX/HTML version for authoring; its
 PowerPoint-exported PDF is not the published artifact.
 
+For someone who has never seen the program there is also a shorter **guided tour**,
+one PDF per language — [English](docs/presentation/Math_Course_AI_Presentation_EN.pdf)
+and [Türkçe](docs/presentation/Math_Course_AI_Sunum_TR.pdf). It walks through the real
+interface screen by screen, with numbered call-outs on the same screenshots (cropped,
+never edited), and takes every count from `tools/measure_facts.py`. `tanitim_tur.py`
+renders it as HTML printed to PDF by a headless Chromium-family browser (Chromium,
+Chrome or Edge):
+
+```powershell
+python tanitim_tur.py
+```
+
 ## Running the tests
 
 ```powershell
