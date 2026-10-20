@@ -47,10 +47,10 @@ SLAYTLAR = [
                 "window — with the AI running on YOUR machine by default."),
         "dipnot": (f"{VERSION}  ·  Windows 10/11 (x64) + macOS (Apple Silicon) · "
                    f"Python 3.11 · kaynak kod MIT — İndirme: "
-                   f"github.com/Azizsekerdil/math-course-ai/releases (v1.0.0); "
+                   f"github.com/Azizsekerdil/math-course-ai/releases (latest); "
                    f"ikili paketler PyMuPDF içermez (bkz. THIRD_PARTY_NOTICES.md)",
                    f"{VERSION}  ·  Windows 10/11 (x64) & macOS (Apple Silicon) · "
-                   f"Python 3.11 · source MIT — Download: GitHub Releases (v1.0.0); "
+                   f"Python 3.11 · source MIT — Download: GitHub Releases (latest); "
                    f"the binary packages contain no PyMuPDF (see "
                    f"THIRD_PARTY_NOTICES.md)"),
     },
@@ -619,14 +619,14 @@ SLAYTLAR = [
         "tip": "madde",
         "baslik": ("⬇️ Platformlar & İndirme", "⬇️ Platforms & Download"),
         "alt": ("Windows 10/11 (x64) + macOS (Apple Silicon) — İndirme: "
-                "github.com/Azizsekerdil/math-course-ai/releases (v1.0.0)",
+                "github.com/Azizsekerdil/math-course-ai/releases (latest)",
                 "Windows 10/11 (x64) & macOS (Apple Silicon) — Download: "
-                "GitHub Releases (v1.0.0)"),
+                "GitHub Releases (latest)"),
         "ogeler": [
-            ("v1.0.0 sürümü yayında: github.com/Azizsekerdil/math-course-ai/"
-             "releases/tag/v1.0.0 — iki paket: Windows zip + macOS zip.",
-             "Release v1.0.0 is live: github.com/Azizsekerdil/math-course-ai/"
-             "releases/tag/v1.0.0 — two assets: a Windows zip and a macOS zip."),
+            ("Güncel sürüm GitHub Releases'te: github.com/Azizsekerdil/math-course-ai/"
+             "releases — Windows ve macOS paketleri.",
+             "The current release is on GitHub Releases: github.com/Azizsekerdil/"
+             "math-course-ai/releases — Windows and macOS packages."),
             ("Kaynak kod herkese açık: github.com/Azizsekerdil/math-course-ai "
              "(MIT lisansı).",
              "The source code is public: github.com/Azizsekerdil/math-course-ai "

@@ -91,7 +91,8 @@ matter to you, stay on the local model. See [AI_TRANSPARENCY.md](../AI_TRANSPARE
 - `pytesseract` needs a separate Tesseract binary that this project does not ship.
 - `manim` is imported by one optional animation path and is not in `requirements.txt`;
   that path is unavailable unless you install it yourself.
-- No binary is built or published from this repository.
+- Windows and macOS binaries are published only as PyMuPDF-free GitHub Release
+  assets; no binary is committed to the source repository.
 
 ---
 
