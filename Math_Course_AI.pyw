@@ -97,8 +97,8 @@ UI_TEXT = {
         "theme_mode":"Theme", "theme_light":"☀ Light", "theme_dark":"🌙 Dark",
         "theme_saved":"Theme saved — restart to apply / Tema kaydedildi, yeniden başlatınca uygulanır",
         "course_resources":"Course Resources", "pdf_reader":"PDF Reader / Annotator", "ai_tutor":"AI Tutor", "smart_wacom":"Smart Tablet Drawing Board", "calculator":"Calculator",
-        "data_lab":"Math Data Lab", "physics_lab":"Physics → Math Lab", "chemistry_lab":"Chemistry → Math Lab", "dna_lab":"Math DNA Lab", "quantum_lab":"Math Quantum Lab", "dictionary":"Science Dictionary", "visual_math_lab":"Visual Math Lab", "student_tracker":"Student Tracker",
-        "course_resources_full":"Course Resources / Kurs Kaynakları", "calculator_full":"Calculator / Hesap Makinesi", "dictionary_full":"Science Dictionary / Bilim Sözlüğü", "visual_math_lab_full":"Visual Math Lab / Görsel Matematik Laboratuvarı", "student_tracker_full":"Student Tracker / Öğrenci Takip",
+        "data_lab":"Math Data Lab", "physics_lab":"Physics → Math Lab", "chemistry_lab":"Chemistry → Math Lab", "dna_lab":"Math DNA Lab", "quantum_lab":"Math Quantum Lab", "dictionary":"Science Dictionary", "visual_math_lab":"Visual Math Lab", "manim_studio":"Manim Animation Studio", "student_tracker":"Student Tracker",
+        "course_resources_full":"Course Resources / Kurs Kaynakları", "calculator_full":"Calculator / Hesap Makinesi", "dictionary_full":"Science Dictionary / Bilim Sözlüğü", "visual_math_lab_full":"Visual Math Lab / Görsel Matematik Laboratuvarı", "manim_studio_full":"Manim Animation Studio / Manim Animasyon Stüdyosu", "student_tracker_full":"Student Tracker / Öğrenci Takip",
         "browse":"Browse", "search":"Search", "open_resource":"Open Resource", "read_show":"Read / Show", "open_folder_location":"Open Folder Location", "print":"Print",
         "course_tracker":"Course Tracker", "track_progress":"Track progress, difficulty, and feedback.", "save_progress":"Save Progress", "open_token_log_folder":"Open Token Log Folder", "open_resources_folder":"Open Resources Folder",
         "question_topic":"Question / Topic You Do Not Understand", "attach_image":"Attach PNG/JPEG Problem Image", "clear_image":"Clear Image", "no_image":"No image attached.",
@@ -122,8 +122,8 @@ UI_TEXT = {
         "theme_mode":"Tema", "theme_light":"☀ Açık", "theme_dark":"🌙 Koyu",
         "theme_saved":"Tema kaydedildi — yeniden başlatınca uygulanır / restart to apply",
         "course_resources":"Kurs Kaynakları", "pdf_reader":"PDF Okuyucu / Not Alma", "ai_tutor":"Yapay Zeka Öğretmen", "smart_wacom":"Akıllı Tablet Çizim Tahtası", "calculator":"Hesap Makinesi",
-        "data_lab":"Matematik Veri Laboratuvarı", "physics_lab":"Fizik → Matematik Laboratuvarı", "chemistry_lab":"Kimya → Matematik Laboratuvarı", "dna_lab":"Matematik DNA Laboratuvarı", "quantum_lab":"Matematik Kuantum Laboratuvarı", "dictionary":"Bilim Sözlüğü", "visual_math_lab":"Görsel Matematik Laboratuvarı", "student_tracker":"Öğrenci Takip",
-        "course_resources_full":"Course Resources / Kurs Kaynakları", "calculator_full":"Calculator / Hesap Makinesi", "dictionary_full":"Science Dictionary / Bilim Sözlüğü", "visual_math_lab_full":"Visual Math Lab / Görsel Matematik Laboratuvarı", "student_tracker_full":"Student Tracker / Öğrenci Takip",
+        "data_lab":"Matematik Veri Laboratuvarı", "physics_lab":"Fizik → Matematik Laboratuvarı", "chemistry_lab":"Kimya → Matematik Laboratuvarı", "dna_lab":"Matematik DNA Laboratuvarı", "quantum_lab":"Matematik Kuantum Laboratuvarı", "dictionary":"Bilim Sözlüğü", "visual_math_lab":"Görsel Matematik Laboratuvarı", "manim_studio":"Manim Animasyon Stüdyosu", "student_tracker":"Öğrenci Takip",
+        "course_resources_full":"Course Resources / Kurs Kaynakları", "calculator_full":"Calculator / Hesap Makinesi", "dictionary_full":"Science Dictionary / Bilim Sözlüğü", "visual_math_lab_full":"Visual Math Lab / Görsel Matematik Laboratuvarı", "manim_studio_full":"Manim Animation Studio / Manim Animasyon Stüdyosu", "student_tracker_full":"Student Tracker / Öğrenci Takip",
         "browse":"Gözat", "search":"Ara", "open_resource":"Kaynağı Aç", "read_show":"Oku / Göster", "open_folder_location":"Klasör Konumu Aç", "print":"Yazdır",
         "course_tracker":"Kurs Takibi", "track_progress":"İlerleme, zorluk ve geri bildirimi takip et.", "save_progress":"İlerlemeyi Kaydet", "open_token_log_folder":"Token Log Klasörünü Aç", "open_resources_folder":"Kaynak Klasörünü Aç",
         "question_topic":"Anlamadığın Soru / Konu", "attach_image":"PNG/JPEG Soru Görseli Ekle", "clear_image":"Görseli Temizle", "no_image":"Görsel eklenmedi.",
@@ -134,12 +134,12 @@ UI_TEXT = {
         "language_saved":"Dil ayarı kaydedildi. Tüm sabit etiketlerin yenilenmesi için programı yeniden başlat.", "dictionary_hint":"Önce Matematik, Fizik, DNA veya Kimya sözlüğünü seç; sonra İngilizce ya da Türkçe terimi ara. Açıklamalar programın içinde hazırdır; AI çağrısı yapılmaz."
     },
 }
-WORKSPACE_KEYS = ["CourseResources", "PDF", "AI", "Wacom", "Calculator", "Data", "Physics", "Chemistry", "DNA", "Quantum", "Dictionary", "VisualMath", "StudentTracker"]
+WORKSPACE_KEYS = ["CourseResources", "PDF", "AI", "Wacom", "Calculator", "Data", "Physics", "Chemistry", "DNA", "Quantum", "Dictionary", "VisualMath", "ManimStudio", "StudentTracker"]
 # The five science labs are shown as ONE "Lab'lar ▾" chip on the workspace bar
 # so the bar stays readable; each lab is still its own workspace/tab.
 LAB_WORKSPACES = ("Data", "Physics", "Chemistry", "DNA", "Quantum")
-WORKSPACE_TEXT_KEYS = {"CourseResources":"course_resources_full", "PDF":"pdf_reader", "AI":"ai_tutor", "Wacom":"smart_wacom", "Calculator":"calculator_full", "Data":"data_lab", "Physics":"physics_lab", "Chemistry":"chemistry_lab", "DNA":"dna_lab", "Quantum":"quantum_lab", "Dictionary":"dictionary_full", "VisualMath":"visual_math_lab_full", "StudentTracker":"student_tracker_full"}
-WORKSPACE_SHORT_TEXT_KEYS = {"CourseResources":"course_resources", "PDF":"pdf_reader", "AI":"ai_tutor", "Wacom":"smart_wacom", "Calculator":"calculator", "Data":"data_lab", "Physics":"physics_lab", "Chemistry":"chemistry_lab", "DNA":"dna_lab", "Quantum":"quantum_lab", "Dictionary":"dictionary", "VisualMath":"visual_math_lab", "StudentTracker":"student_tracker"}
+WORKSPACE_TEXT_KEYS = {"CourseResources":"course_resources_full", "PDF":"pdf_reader", "AI":"ai_tutor", "Wacom":"smart_wacom", "Calculator":"calculator_full", "Data":"data_lab", "Physics":"physics_lab", "Chemistry":"chemistry_lab", "DNA":"dna_lab", "Quantum":"quantum_lab", "Dictionary":"dictionary_full", "VisualMath":"visual_math_lab_full", "ManimStudio":"manim_studio_full", "StudentTracker":"student_tracker_full"}
+WORKSPACE_SHORT_TEXT_KEYS = {"CourseResources":"course_resources", "PDF":"pdf_reader", "AI":"ai_tutor", "Wacom":"smart_wacom", "Calculator":"calculator", "Data":"data_lab", "Physics":"physics_lab", "Chemistry":"chemistry_lab", "DNA":"dna_lab", "Quantum":"quantum_lab", "Dictionary":"dictionary", "VisualMath":"visual_math_lab", "ManimStudio":"manim_studio", "StudentTracker":"student_tracker"}
 
 
 
@@ -541,6 +541,7 @@ class MathCourseApp(tk.Tk):
                 "Quantum": "Kuantum",
                 "Dictionary": "Sözlük",
                 "VisualMath": "Görsel Mat",
+                "ManimStudio": "Manim Stüdyo",
                 "StudentTracker": "Öğrenci Takip",
             }
             compact_en = {
@@ -556,6 +557,7 @@ class MathCourseApp(tk.Tk):
                 "Quantum": "Quantum",
                 "Dictionary": "Dictionary",
                 "VisualMath": "Visual Math",
+                "ManimStudio": "Manim Studio",
                 "StudentTracker": "Tracker",
             }
             compact = compact_tr if self.language == "tr" else compact_en
@@ -611,6 +613,13 @@ class MathCourseApp(tk.Tk):
         try:
             if hasattr(self, "visual_math_lab") and self.visual_math_lab is not None:
                 self.visual_math_lab.refresh_ui()
+        except Exception:
+            pass
+        try:
+            # Keep a previously opened studio localized without creating it
+            # just because the application language changed.
+            if hasattr(self, "manim_studio") and self.manim_studio is not None:
+                self.manim_studio.refresh_ui()
         except Exception:
             pass
         self.rebuild_workspace_buttons()
@@ -792,6 +801,9 @@ class MathCourseApp(tk.Tk):
         self.tabs.add(self.calculator_tab, text=self.workspace_tab_display("Calculator"))
         self.visual_math_tab = ttk.Frame(self.tabs)
         self.tabs.add(self.visual_math_tab, text=self.workspace_tab_display("VisualMath"))
+        # This optional editor/player remains lazy until its tab is selected.
+        self.manim_studio_tab = ttk.Frame(self.tabs)
+        self.tabs.add(self.manim_studio_tab, text=self.workspace_tab_display("ManimStudio"))
         self.student_tracker_tab = ttk.Frame(self.tabs)
         self.tabs.add(self.student_tracker_tab, text=self.workspace_tab_display("StudentTracker"))
         self.tabs.bind("<Button-2>", self.on_notebook_tab_click, add="+")  # middle-click closes; left-click just selects
@@ -824,6 +836,8 @@ class MathCourseApp(tk.Tk):
         # uretdigi icin "Grafik" gibi kisayollar da bu yoldan gecer.
         self.visual_math_lab = None
         self._visual_math_error = None
+        self.manim_studio = None
+        self._manim_studio_error = None
         self.tabs.bind("<<NotebookTabChanged>>", self._on_tab_changed, add="+")
         # Student Tracker: profiles + question bank + exams + progress analytics.
         self.student_tracker = None
@@ -902,6 +916,9 @@ class MathCourseApp(tk.Tk):
             if getattr(self, "visual_math_tab", None) is not None and \
                     sel == str(self.visual_math_tab):
                 self._ensure_visual_math_lab()
+            elif getattr(self, "manim_studio_tab", None) is not None and \
+                    sel == str(self.manim_studio_tab):
+                self._ensure_manim_studio()
             elif getattr(self, "labs_tab", None) is not None and \
                     sel == str(self.labs_tab):
                 self._ensure_labs_built()
@@ -1041,6 +1058,31 @@ class MathCourseApp(tk.Tk):
             return
         loading.destroy()
         self.visual_math_lab.pack(fill="both", expand=True)
+
+    def _ensure_manim_studio(self):
+        """Create the optional Manim code editor and video player on first use."""
+        if self.manim_studio is not None or self._manim_studio_error is not None:
+            return self.manim_studio
+        loading = ttk.Label(
+            self.manim_studio_tab,
+            text="⏳ Manim Animasyon Stüdyosu yükleniyor… / Loading Manim Animation Studio…",
+        )
+        loading.pack(pady=40)
+        self.manim_studio_tab.update_idletasks()
+        try:
+            import manim_studio as _manim_studio_mod
+            self.manim_studio = _manim_studio_mod.ManimStudio(self.manim_studio_tab, self)
+        except Exception as exc:
+            self._manim_studio_error = exc
+            try:
+                print(f"Manim Studio unavailable: {exc}")
+            except Exception:
+                pass
+            loading.config(text=f"Manim Animasyon Stüdyosu yüklenemedi: {exc}")
+            return None
+        loading.destroy()
+        self.manim_studio.pack(fill="both", expand=True)
+        return self.manim_studio
 
     def rebuild_workspace_buttons(self):
         """Rebuild the compact Screen UI workspace buttons with small × close controls.
@@ -1201,12 +1243,12 @@ class MathCourseApp(tk.Tk):
         # 5 lab anahtari da ayni labs_tab'a cozumlenir (ic sekme secimi
         # select_workspace/_restore_session'daki _select_lab ile yapilir).
         mapping = {}
-        for key, attr in [("PDF", "pdf_tab"), ("AI", "ai_tab"), ("Data", "labs_tab"), ("Physics", "labs_tab"), ("Chemistry", "labs_tab"), ("DNA", "labs_tab"), ("Quantum", "labs_tab"), ("Wacom", "wacom_board_tab"), ("Calculator", "calculator_tab"), ("Dictionary", "dictionary_tab"), ("VisualMath", "visual_math_tab"), ("StudentTracker", "student_tracker_tab")]:
+        for key, attr in [("PDF", "pdf_tab"), ("AI", "ai_tab"), ("Data", "labs_tab"), ("Physics", "labs_tab"), ("Chemistry", "labs_tab"), ("DNA", "labs_tab"), ("Quantum", "labs_tab"), ("Wacom", "wacom_board_tab"), ("Calculator", "calculator_tab"), ("Dictionary", "dictionary_tab"), ("VisualMath", "visual_math_tab"), ("ManimStudio", "manim_studio_tab"), ("StudentTracker", "student_tracker_tab")]:
             if hasattr(self, attr): mapping[key] = getattr(self, attr)
         return mapping
 
     def tab_workspace_keys(self):
-        return ["PDF", "AI", "Data", "Physics", "Chemistry", "DNA", "Quantum", "Wacom", "Calculator", "Dictionary", "VisualMath", "StudentTracker"]
+        return ["PDF", "AI", "Data", "Physics", "Chemistry", "DNA", "Quantum", "Wacom", "Calculator", "Dictionary", "VisualMath", "ManimStudio", "StudentTracker"]
 
     def _active_lab_key(self):
         """Ic lab notebook'unda o an secili lab'in workspace anahtari."""

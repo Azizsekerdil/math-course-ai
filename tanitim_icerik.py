@@ -94,18 +94,18 @@ SLAYTLAR = [
                               "topic knowledge entries\n(no AI, instant)")),
             (("50 + 90", "50 + 90"), ("gömülü simülasyon\n+ formül kartı",
                                       "embedded simulations\n+ formula cards")),
-            (("13", "13"), ("çalışma alanı\n(5 bilim lab'ı dâhil)",
+            (("14", "14"), ("çalışma alanı\n(5 bilim lab'ı dâhil)",
                             "workspaces\n(5 science labs inside)")),
-            (("2 471", "2,471"), ("otomatik test kontrolü\n11 pakette",
-                                  "automated checks\nacross 11 suites")),
+            (("33", "33"), ("Manim Stüdyo kontrolü\n1 pakette",
+                              "Manim Studio checks\nin 1 suite")),
         ],
         "dipnot": ("Her sayı tools/measure_facts.py ile ÖLÇÜLDÜ; elle yazılan "
-                   "sayı yok. Test toplamı bu sürümün kayıtlı koşusundan gelir "
-                   "ve kurs kitaplığı yokken atlanan kontroller ayrıca yazılır.",
+                   "sayı yok. Yayın testi toplamı, oluşturulduğunda manifestte "
+                   "kaydedilir; kurs kitaplığı yokken atlanan kontroller ayrıca yazılır.",
                    "Every number here is MEASURED by tools/measure_facts.py; "
-                   "none is hand-written. The test total comes from this "
-                   "release's recorded run, which also states how many checks "
-                   "are skipped when no course library is present."),
+                   "none is hand-written. The release test total is recorded "
+                   "in its manifest when generated, which also states how many "
+                   "checks are skipped when no course library is present."),
     },
     # ──────────────────────────────────────────────────────── kaynaklar ──
     {
@@ -593,11 +593,11 @@ SLAYTLAR = [
         "tip": "sayi",
         "baslik": ("Nasıl geliştiriliyor", "How it is built"),
         "ogeler": [
-            (("2 471", "2,471"), ("otomatik kontrol\n11 test paketinde",
-                                  "automated checks\nacross 11 suites")),
+            (("12", "12"), ("test paketi\nCI'da çalışır",
+                              "test suites\nrun in CI")),
             (("190", "190"), ("kurs kitaplığı yokken\natlanan kontrol",
                               "checks skipped when no\ncourse library is present")),
-            (("11", "11"), ("CI adımı\nwindows-latest · Python 3.11",
+            (("12", "12"), ("CI adımı\nwindows-latest · Python 3.11",
                             "CI steps\nwindows-latest · Python 3.11")),
             (("MIT", "MIT"), ("kaynak kod lisansı\n(kurs içeriği hariç)",
                               "source-code licence\n(course content excluded)")),

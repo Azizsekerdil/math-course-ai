@@ -31,7 +31,7 @@ Concretely, in this repository:
 | Every `fitz` import is inside `try/except`, so the program runs without it. | `mca_common.py`, `pdf_viewer.py`, `course_simulation_library.py`, `language_dictionary.py`, `Math_Course_AI.pyw` |
 
 **Why that resolves it.** This project distributes its own MIT-licensed source and
-binaries that contain only MIT/permissively-licensed components.
+binaries whose bundled components are listed in §2, and which contain no PyMuPDF.
 It does not convey PyMuPDF to anyone. A user who chooses to `pip install pymupdf`
 obtains it directly from Artifex/PyPI under Artifex's terms and combines it with this
 program **for their own private use**, which the AGPL does not restrict.
@@ -52,8 +52,9 @@ this file does not pretend otherwise.
 
 ## 2. Runtime dependencies
 
-Versions are the ones this release was tested against and are pinned in
-`requirements.txt` / `requirements-optional.txt`.
+Version-pinned entries are the ones this release was tested against and are recorded
+in `requirements.txt` / `requirements-optional.txt`. Manim remains an optional,
+unbundled renderer whose platform prerequisites are installed separately.
 
 ### Required
 
@@ -78,10 +79,13 @@ library (PSF licence) and are not listed separately.
 | `pytesseract` | 0.3.13 | Apache-2.0 | OCR (also needs a separate Tesseract binary, not shipped) |
 | `python-docx` | 1.2.0 | MIT | Word export |
 | `python-pptx` | 1.0.2 | MIT | presentation generation |
-| `manim` | not pinned | MIT | one optional animation path; not installed by CI |
+| `manim` | not pinned | MIT | optional Manim render paths, including the Animation Studio; not installed by CI |
+| `python-vlc` | 3.0.21203 | LGPL-2.1-or-later | optional embedded MP4 player; requires a separately installed VLC/libVLC runtime |
 
 **Tesseract OCR** itself (Apache-2.0) is a separate program that this project neither
-ships nor installs.
+ships nor installs. VLC/libVLC is likewise not bundled or installed by this project;
+the Manim Studio reports a clear setup message when the optional player runtime is
+unavailable.
 
 ---
 

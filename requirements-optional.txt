@@ -12,3 +12,9 @@ opencv-python==4.13.0.92   # Apache-2.0 - image pre-processing in the labs
 pytesseract==0.3.13        # Apache-2.0 - OCR (also needs a Tesseract binary)
 python-docx==1.2.0         # MIT - Word export
 python-pptx==1.0.2         # MIT - presentation generation
+
+# Manim Animation Studio. These stay optional: Manim renders user-supplied
+# Python and may require a system FFmpeg setup; python-vlc also needs a
+# separately installed VLC/libVLC runtime for in-app MP4 playback.
+manim                       # MIT - render Manim scenes
+python-vlc==3.0.21203       # LGPL-2.1-or-later - embedded libVLC bindings

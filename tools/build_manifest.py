@@ -30,7 +30,7 @@ os.environ.setdefault("MPLBACKEND", "Agg")
 os.environ.setdefault("MATH_COURSE_AI_SETTINGS", tempfile.mkdtemp(prefix="mcai-mf-"))
 os.environ.setdefault("MATH_COURSE_AI_EXPORTS", tempfile.mkdtemp(prefix="mcai-me-"))
 
-SKIP_DIRS = {"__pycache__", ".git", ".venv", "venv", "build", "dist",
+SKIP_DIRS = {"__pycache__", ".git", ".venv", "venv", ".build-venv", "build", "dist",
              "exports", "settings", "data", "Resources"}
 
 

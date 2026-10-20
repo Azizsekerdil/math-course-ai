@@ -50,6 +50,7 @@ presentation. The controls below map onto those three.
 | Threat | Control | Test |
 |---|---|---|
 | Model-written code runs on the host | Feature **disabled by default**; human approval dialog; static allowlist policy; isolated per-run workspace; scrubbed environment; Windows Job Object memory/process caps; 180 s timeout | `test_ai_code_guard.py` |
+| A pasted Manim scene runs unexpected Python | The Manim Studio never receives code from an AI automatically; its per-session acknowledgement names the user-permission execution boundary and every render gets a fresh output folder. It is **not a sandbox**: run only code you trust. | `test_manim_studio.py` |
 | Data silently leaving the machine | Local provider is the hardcoded default; cloud refuses to build a request without explicit per-session consent | `test_ai_code_guard.py`, `test_ai_terminal.py` |
 | API key exposure | Windows Credential Manager only; never plaintext, never logged; UI shows provider, status and last 4 characters only; no other app's credential store is read; child processes inherit no key | `test_ai_terminal.py` |
 | Hostile `.mcpack` | Zip-slip defence (no absolute paths, no `..`, no subdirectories, extension allowlist); member-count, declared-size and compression-ratio caps; hard byte ceiling during extraction | `test_ai_code_guard.py` |

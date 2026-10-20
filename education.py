@@ -595,7 +595,7 @@ def _body_tr():
                  'O çalışma alanı gizlenir; şerit sadeleşir',
                  'Kullanmadığın sekmeler gözünü yormaz')
         + _cause('<b>Çalışma Alanı Yöneticisi</b>\'ni açtın',
-                 '13 alanın hepsini tek listeden aç/kapat yaparsın',
+                 '14 alanın hepsini tek listeden aç/kapat yaparsın',
                  'Gizlediğin bir alanı geri getirmek tek tıktır')
         + _tablo(["X Düzeni", "Ne yapar"], [
             ["<b>Klasik</b>", "Kaynaklar solda, PDF sağda"],
@@ -1285,7 +1285,7 @@ def _body_en():
                  'That workspace is hidden and the strip gets simpler',
                  'Tabs you do not use stop competing for your attention', L)
         + _cause('You opened the <b>Workspace Manager</b>',
-                 'You can show or hide all 13 workspaces from one list',
+                 'You can show or hide all 14 workspaces from one list',
                  'Bringing a hidden workspace back is one click', L)
         + _tablo(["X Layout", "What it does"], [
             ["<b>Classic</b>", "Resources on the left, PDF on the right"],

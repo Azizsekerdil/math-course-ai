@@ -25,7 +25,7 @@ cd math-course-ai
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-pip install -r requirements-optional.txt   # only if you need PDF/OCR/export work
+pip install -r requirements-optional.txt   # only if you need PDF/OCR/export or Manim/VLC work
 python tools\make_demo_resources.py demo_resources
 $env:MATH_COURSE_AI_RESOURCES = "demo_resources"
 python Math_Course_AI.pyw
@@ -39,7 +39,7 @@ session.
 ```powershell
 $env:MPLBACKEND = "Agg"
 foreach ($s in @(
-  "test_visual_math_lab.py","test_language_dictionary.py","test_student_tracker.py",
+  "test_visual_math_lab.py","test_manim_studio.py","test_language_dictionary.py","test_student_tracker.py",
   "test_topic_knowledge.py","test_workspace_docking_manager.py","test_ai_terminal.py",
   "test_egitim_token.py","test_ai_code_guard.py","test_public_claims.py",
   "smoke_dark_theme.py","smoke_lazy_panels.py")) { python $s }

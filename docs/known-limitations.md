@@ -39,6 +39,25 @@ This matters more than it looks, because untrusted text reaches the model by des
 could try to steer the model into writing something hostile. That is why the static
 check runs *before* the approval dialog opens and why the feature ships off.
 
+### Manim Studio is a separate manual-code boundary
+
+The Manim Animation Studio accepts a scene that **you paste or edit** and launches it
+with the current Windows user's permissions after a per-session acknowledgement. It
+does not receive or automatically execute code from the AI Terminal. This allows the
+normal Manim import and rendering workflow, which the AI Terminal's intentionally
+strict allowlist does not permit.
+
+That acknowledgement is not a sandbox, a code audit, or an operating-system security
+boundary. Do not paste a scene from an untrusted source. The studio creates a fresh
+render-output directory for every run, but that does not prevent the code from
+accessing other files, starting processes, or using the network with your permissions.
+Use the separately default-off AI Terminal execution flow for AI-written code.
+
+For the packaged EXE, Manim is not bundled: point the process environment variable
+`MATH_COURSE_AI_MANIM_PYTHON` at a Python interpreter where Manim and its system
+requirements are installed. `.env.example` is a reference file only; the application
+does not load `.env` values on its own.
+
 ### Roadmap
 
 Ship this feature on only when it runs inside a real OS-enforced sandbox with no

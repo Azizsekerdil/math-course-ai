@@ -94,6 +94,11 @@ release**. Several entries correct claims that were previously wrong.
 
 ### Added
 
+- **Manim Animation Studio:** a lazy workspace with an editable starter scene,
+  480p15/720p30/1080p60 quality choices, background `python -m manim` rendering,
+  live log output, per-render output folders, and optional in-app VLC MP4 controls.
+  It requires a clear per-session acknowledgement because pasted scenes are Python
+  programs; it does not execute code supplied by the AI Terminal automatically.
 - `SECURITY.md`, `PRIVACY.md`, `AI_TRANSPARENCY.md`, `CODE_OF_CONDUCT.md`,
   `THIRD_PARTY_NOTICES.md`, `docs/known-limitations.md`, `.env.example`,
   `.github/dependabot.yml`, SPDX and CycloneDX SBOMs, and this changelog.

@@ -61,7 +61,7 @@ python Math_Course_AI.pyw
 
 `requirements.txt` pins the versions this release was tested with.
 `requirements-optional.txt` holds features that are not needed to start the program
-(PDF rendering, OCR, Word/PowerPoint export).
+(PDF rendering, OCR, Word/PowerPoint export, and Manim/VLC preview support).
 
 > **PyMuPDF is licensed AGPL-3.0-or-commercial.** It is listed as an *optional*
 > dependency and is **not** distributed with this project — you install it yourself
@@ -69,6 +69,41 @@ python Math_Course_AI.pyw
 > GitHub Release assets and are built without PyMuPDF; no binary is committed to the
 > source repository. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for why
 > that matters.
+
+## Manim Animation Studio (optional)
+
+The **Manim Animation Studio** workspace lets you edit a scene, render it in the
+background at 480p15, 720p30, or 1080p60, inspect the live Manim log, and play the
+resulting MP4 without leaving the app.
+
+Install its optional Python packages in the environment that runs the source app:
+
+```powershell
+pip install -r requirements-optional.txt
+```
+
+Manim also needs FFmpeg; scenes using `MathTex` need a TeX distribution. Install VLC
+Media Player separately if you want the embedded player (it supplies the `libVLC`
+runtime); a completed MP4 can always be opened with the system player.
+
+The first render asks for a per-session acknowledgement because a Manim scene is
+ordinary Python and runs with your Windows user permissions. Paste or edit only code
+you trust. The studio never receives AI-written code automatically, and this is **not
+a sandbox**. Each render receives a fresh output folder under
+`<program>\exports\animations\manim_studio`, so its source and rendered media remain available.
+
+For the packaged EXE, Manim is intentionally external rather than bundled. Install
+Manim in a regular Python environment, then set
+`MATH_COURSE_AI_MANIM_PYTHON` to that interpreter's full `python.exe` path before
+launching the EXE:
+
+```powershell
+$env:MATH_COURSE_AI_MANIM_PYTHON = "C:\\path\\to\\python.exe"
+& ".\Math Course AI.exe"
+```
+
+The app does not load a `.env` file itself; set this as a Windows environment
+variable (or in the launching terminal) rather than only copying `.env.example`.
 
 ## Demo in two commands
 
@@ -100,6 +135,7 @@ repository. `.env.example` lists every variable with empty or placeholder values
 | `MATH_COURSE_AI_SETTINGS` | per-installation UI/session state | `<program>\settings` |
 | `MATH_COURSE_AI_LEGACY_DATA` | one-time migration source for pre-V43 databases | unset |
 | `MATH_COURSE_AI_ENABLE_CODE_EXECUTION` | opt in to running AI-written Python (**off by default — read the risk first**) | unset = off |
+| `MATH_COURSE_AI_MANIM_PYTHON` | full path to the Python interpreter with Manim for a packaged Studio build | source app interpreter |
 | `NVIDIA_API_KEY` | key for the **optional** cloud provider; you supply it after install | unset |
 
 Your study data lives in `%APPDATA%\MathCourseAI\`, never in the repository.
@@ -147,8 +183,8 @@ of the running program**, taken by `tanitim_ekran.py` against the synthetic demo
 profile — not mock-ups.
 
 The slide deck's content lives in one place, [`tanitim_icerik.py`](tanitim_icerik.py).
-The **published** PDF in [`docs/presentation/`](docs/presentation) is rendered from it
-by `tanitim_pdf.py` (matplotlib, libre font embedded, no Office required):
+Published PDFs are release artifacts; the same content can be rendered locally by
+`tanitim_pdf.py` (matplotlib, libre font embedded, no Office required):
 
 ```powershell
 python tanitim_pdf.py
@@ -162,6 +198,7 @@ PowerPoint-exported PDF is not the published artifact.
 ```powershell
 $env:MPLBACKEND = "Agg"
 python test_visual_math_lab.py
+python test_manim_studio.py
 python test_language_dictionary.py
 python test_student_tracker.py
 python test_topic_knowledge.py
@@ -175,9 +212,9 @@ python smoke_lazy_panels.py
 ```
 
 Every suite is a plain script that prints one line per assertion and a `RESULT:`
-summary, and exits non-zero on failure. The measured totals for this release are
-recorded in [`PUBLIC_RELEASE_MANIFEST.json`](PUBLIC_RELEASE_MANIFEST.json) — this
-README does not restate them, so the two can never drift apart.
+summary, and exits non-zero on failure. A release candidate's measured totals are
+recorded in its generated `PUBLIC_RELEASE_MANIFEST.json` release artifact — this
+README does not restate them, so the two cannot drift apart.
 
 `test_visual_math_lab.py` skips a group of checks when no course library is present;
 the suite prints how many it skipped. That is expected on a clean checkout and on CI.

@@ -29,7 +29,7 @@ os.environ.setdefault("MPLBACKEND", "Agg")
 sys.path.insert(0, str(ROOT))
 
 TEST_SUITES = [
-    "test_visual_math_lab.py", "test_language_dictionary.py",
+    "test_visual_math_lab.py", "test_manim_studio.py", "test_language_dictionary.py",
     "test_student_tracker.py", "test_topic_knowledge.py",
     "test_workspace_docking_manager.py", "test_ai_terminal.py",
     "test_egitim_token.py", "test_ai_code_guard.py", "test_public_claims.py",

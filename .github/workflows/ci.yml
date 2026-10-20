@@ -70,6 +70,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: ./.github/run_suite.ps1 test_visual_math_lab.py
 
+      - name: test_manim_studio.py
+        if: ${{ !cancelled() }}
+        run: ./.github/run_suite.ps1 test_manim_studio.py
+
       - name: test_language_dictionary.py
         if: ${{ !cancelled() }}
         run: ./.github/run_suite.ps1 test_language_dictionary.py

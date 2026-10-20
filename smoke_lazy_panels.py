@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Tembel panel kurulumu smoke paketi (Sözlük + Öğrenci Takip).
+"""Tembel panel kurulumu smoke paketi (Sözlük + Öğrenci Takip + Manim).
 
 V48 performans 2. turunda Sözlük (medyan 294 ms) ve Öğrenci Takip (192 ms)
 panelleri açılıştan çıkarılıp ilk ihtiyaca ertelendi. Kazanç HEAD ile
@@ -104,8 +104,10 @@ def main():
     app.update_idletasks()
     check("Sözlük açılışta KURULMUYOR", app.dictionary is None)
     check("Öğrenci Takip açılışta KURULMUYOR", app.student_tracker is None)
+    check("Manim Stüdyo açılışta KURULMUYOR", app.manim_studio is None)
     check("sekme çerçeveleri yine de var (şerit bozulmadı)",
-          app.dictionary_tab is not None and app.student_tracker_tab is not None)
+          app.dictionary_tab is not None and app.manim_studio_tab is not None and
+          app.student_tracker_tab is not None)
     check("ağır modüller açılışta import EDİLMEDİ",
           "language_dictionary" not in sys.modules or app.dictionary is None,
           "sozluk paneli yok")
@@ -123,6 +125,16 @@ def main():
     app.tabs.select(app.dictionary_tab)
     app.update()
     check("ikinci geçişte YENİDEN kurulmuyor", app.dictionary is ilk)
+
+    app.tabs.select(app.manim_studio_tab)
+    app.update()
+    check("Manim Stüdyo sekmesi seçilince kuruldu", app.manim_studio is not None,
+          type(app.manim_studio).__name__ if app.manim_studio else "-")
+    ilk_manim = app.manim_studio
+    app.tabs.select(app.dictionary_tab)
+    app.tabs.select(app.manim_studio_tab)
+    app.update()
+    check("Manim Stüdyo ikinci geçişte YENİDEN kurulmuyor", app.manim_studio is ilk_manim)
 
     print("\n== Dil değişimi kurulmamış sözlüğü zorla kurmaz ==")
     app.destroy()

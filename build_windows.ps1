@@ -46,11 +46,15 @@ $checksumPath = "$zipPath.sha256"
 & $PythonExe -m venv --clear $venvPath
 & $venvPython -m pip install --upgrade pip
 & $venvPython -m pip install -r (Join-Path $projectRoot "requirements.txt")
+# Keep Manim external: the frozen app invokes a separately installed Python
+# through MATH_COURSE_AI_MANIM_PYTHON. python-vlc is only the optional binding;
+# the VLC/libVLC runtime remains a separate user installation.
 & $venvPython -m pip install `
     "opencv-python==4.13.0.92" `
     "pytesseract==0.3.13" `
     "python-docx==1.2.0" `
     "python-pptx==1.0.2" `
+    "python-vlc==3.0.21203" `
     "pyinstaller==6.22.3"
 
 $forbiddenPackageCheck = @'
@@ -77,7 +81,7 @@ $hiddenImports = @(
     "nvidia_provider", "mca_common", "lm_studio_client", "science_labs",
     "whiteboard", "pdf_viewer", "calculator", "classic_dictionary",
     "topic_knowledge", "topic_knowledge_round2", "student_tracker", "question_packs",
-    "language_dictionary", "visual_math_lab", "visual_lesson_card",
+    "language_dictionary", "visual_math_lab", "manim_studio", "vlc", "visual_lesson_card",
     "workspace_docking_manager", "command_registry", "ui_preferences",
     "embedded_course_simulations", "embedded_formula_library",
     "course_simulation_library", "ai_code_guard", "cloud_consent"
