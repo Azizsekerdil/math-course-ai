@@ -65,9 +65,10 @@ python Math_Course_AI.pyw
 
 > **PyMuPDF is licensed AGPL-3.0-or-commercial.** It is listed as an *optional*
 > dependency and is **not** distributed with this project — you install it yourself
-> if you want in-app PDF rendering. This repository ships **source only**; it builds
-> no binary and bundles no third-party library. See
-> [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for why that matters.
+> if you want in-app PDF rendering. Windows and macOS packages are supplied only as
+> GitHub Release assets and are built without PyMuPDF; no binary is committed to the
+> source repository. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for why
+> that matters.
 
 ## Demo in two commands
 

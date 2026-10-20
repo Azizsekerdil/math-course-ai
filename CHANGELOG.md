@@ -81,10 +81,9 @@ release**. Several entries correct claims that were previously wrong.
 - The automatic publication pipeline: the `post-commit` push hook installer, the
   `git add -A` sync script and the daily scheduled task. On a public repository these
   would have published anything dropped into the folder, unattended and unreviewed.
-- The PyInstaller specification and the one-command EXE build. **Binary distribution
-  is out of scope for this release**, which resolves the AGPL-3.0 conflict created by
-  bundling PyMuPDF into an executable advertised as MIT. See
-  [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) §1.
+- The unsafe PyInstaller specification that bundled PyMuPDF. Release binaries are
+  instead built in a clean environment without PyMuPDF and published as GitHub
+  Release assets; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) §1.
 - PyMuPDF moved from required to **optional** dependencies; every `fitz` import is
   guarded so the program runs without it.
 - Internal roadmap and product-strategy documents, a PyInstaller build log containing
