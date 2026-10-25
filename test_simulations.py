@@ -143,7 +143,8 @@ def test_example(ex):
     sim = engine.Simulation(ex, "tr")
     t0 = time.time()
     n = sim.build(engine.new_figure())[0]
-    stride = 1 if FULL else 3
+    # Varsayılan: her 6. kare + son kare (CI süresi). --full: her kare.
+    stride = 1 if FULL else 6
     seq = sorted(set(range(0, n, stride)) | {n - 1})
     ok, res = _safe(f"{eid}: kareler sırayla çizilir",
                     lambda: engine.render_frames(sim, seq, size=(6.4, 4.3), dpi=40))
@@ -180,7 +181,7 @@ def test_example(ex):
             check("{" not in v.question(), f"{eid}: vary {seed} soru dolu")
         nv = v.build(engine.new_figure())[0]
         _safe(f"{eid}: vary {seed} kareler", lambda: engine.render_frames(
-            v, [0, nv // 2, nv - 1], size=(6.4, 4.3), dpi=30))
+            v, [0, nv - 1] if not FULL else [0, nv // 2, nv - 1], size=(6.4, 4.3), dpi=30))
     # editor round trip + standalone script
     src = sim.editor_source()
     ok, back = _safe(f"{eid}: düzenleyici kaynağı geri okunur",
