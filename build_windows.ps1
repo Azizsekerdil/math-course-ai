@@ -51,6 +51,7 @@ $checksumPath = "$zipPath.sha256"
     "pytesseract==0.3.13" `
     "python-docx==1.2.0" `
     "python-pptx==1.0.2" `
+    "pypdf==5.4.0" `
     "pyinstaller==6.22.3"
 
 $forbiddenPackageCheck = @'
@@ -80,7 +81,8 @@ $hiddenImports = @(
     "language_dictionary", "visual_math_lab", "visual_lesson_card",
     "workspace_docking_manager", "command_registry", "ui_preferences",
     "embedded_course_simulations", "embedded_formula_library",
-    "course_simulation_library", "ai_code_guard", "cloud_consent"
+    "course_simulation_library", "ai_code_guard", "cloud_consent",
+    "pypdf", "sympy.parsing.sympy_parser"
 )
 $pyInstallerArgs = @(
     "--noconfirm", "--clean", "--onedir", "--windowed",
@@ -92,7 +94,9 @@ $pyInstallerArgs = @(
     "--exclude-module", "fitz",
     "--exclude-module", "pymupdf",
     "--exclude-module", "mupdf",
-    "--collect-all", "PIL"
+    "--collect-all", "PIL",
+    # Python simulation engine + player + embedded templates (simulations/).
+    "--collect-submodules", "simulations"
 )
 foreach ($item in $addData) {
     $pyInstallerArgs += @("--add-data", $item)

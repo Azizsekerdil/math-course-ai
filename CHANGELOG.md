@@ -12,6 +12,28 @@ This is the first version of Math Course AI prepared for publication. The progra
 features are those of V48; everything below is what changed **for the public
 release**. Several entries correct claims that were previously wrong.
 
+### Added — Python simulation engine and Simulation Player
+
+- **▶ next to every topic of the course tree** (and in the right-click menu, under the
+  tree and in the ℹ window) opens the new **Simulation Player** for that topic.
+- `simulations/`: an embedded engine of animated, step-by-step simulations of typical
+  example problems for all nine course areas (arithmetic to probability & statistics).
+  Every simulation is plain Python on `numpy` + `matplotlib` (+ `sympy`) that the
+  player runs directly — **no Manim, FFmpeg, TeX or external video player**, which is
+  what kept the earlier Manim-based attempt from working on a normal Windows install.
+- Player: play/pause, step, seek, speed, loop, worked solution revealed in sync with
+  the animation, **new numbers** for the same problem type, the running source in an
+  editor (edited code must pass `ai_code_guard` before it runs), export to `.py`, GIF
+  and PNG.
+- **Scan source examples:** example problems found in the selected topic's PDF/TXT
+  files are turned into simulations. Only the mathematical content and a file/page
+  reference are kept — never the book's text — and numbers are changed by default.
+  PDF text comes from `pypdf` (BSD-3, now installed by the build scripts) or the
+  optional PyMuPDF.
+- New suites `test_simulations.py` (every template: policy check, both languages,
+  every frame, seek safety, variations, editor round trip; topic matching; scanner)
+  and `smoke_simulation_player.py` (the real window), both in CI.
+
 ### Security
 
 - **AI-generated code execution is now DISABLED by default.** A real OS sandbox could

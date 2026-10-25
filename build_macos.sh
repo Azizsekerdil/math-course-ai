@@ -75,6 +75,8 @@ done
   --hidden-import embedded_course_simulations --hidden-import embedded_formula_library \
   --hidden-import course_simulation_library --hidden-import ai_code_guard \
   --hidden-import cloud_consent \
+  --collect-submodules simulations --hidden-import sympy.parsing.sympy_parser \
+  --hidden-import pypdf \
   --collect-all PIL \
   "$PROJECT_ROOT/Math_Course_AI.pyw"
 

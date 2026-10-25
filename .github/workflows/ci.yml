@@ -102,6 +102,14 @@ jobs:
         if: ${{ !cancelled() }}
         run: ./.github/run_suite.ps1 test_public_claims.py
 
+      - name: test_simulations.py
+        if: ${{ !cancelled() }}
+        run: ./.github/run_suite.ps1 test_simulations.py
+
+      - name: smoke_simulation_player.py
+        if: ${{ !cancelled() }}
+        run: ./.github/run_suite.ps1 smoke_simulation_player.py
+
       - name: smoke_dark_theme.py
         if: ${{ !cancelled() }}
         run: ./.github/run_suite.ps1 smoke_dark_theme.py

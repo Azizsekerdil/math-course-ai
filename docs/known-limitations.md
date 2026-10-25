@@ -135,3 +135,23 @@ place (`tanitim_icerik.py`).
   and it embeds whatever font that machine has. Do not publish that export.
 - Screenshots are captured from the real running program by `tanitim_ekran.py`, which
   needs a desktop session. They cannot be regenerated on CI.
+
+---
+
+## 9. Simulation Player: edited code and the PDF scanner
+
+- The **Python code** tab of the Simulation Player runs the shown source **inside the
+  program's own process**. Unedited code is the program's own embedded template.
+  **Edited** code is refused unless it passes the same static allowlist checker as the AI
+  Terminal (`ai_code_guard.analyze`: no file, network or process modules, no `open`,
+  `eval`, `exec`, dunder access). That checker is a filter, **not a sandbox**: code you
+  type or paste there runs with your user account's rights. Only run code you
+  understand. An infinite loop typed into the editor freezes the window.
+- The source scanner is **rule based**. Mathematics that a PDF stores as an image, or
+  that text extraction flattens badly (stacked fractions, matrices, integral signs,
+  superscripts other than a single digit), is often not recognised; such examples are
+  skipped and the topic's embedded examples are still shown. Expressions taken from a
+  document are reduced to a whitelisted character/function set before `sympy` parses
+  them; anything else is discarded.
+- Topic matching uses keywords of the folder/file names. Unusual names fall back to all
+  examples of the detected course.

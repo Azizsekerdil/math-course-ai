@@ -26,6 +26,10 @@ tutor that runs **on your own machine** by default.
 - Produce a weekly summary you can print to A4.
 - Show worked solutions with `sympy` and plots with `matplotlib`, plus embedded
   interactive simulations and formula cards.
+- Play animated, step-by-step **Python simulations** of typical example problems for
+  every topic of the course tree (▶ next to each topic), regenerate them with new
+  numbers, edit and re-run their source, and turn example problems found in your own
+  PDFs into simulations — see [docs/SIMULATION_PLAYER.md](docs/SIMULATION_PLAYER.md).
 - Provide a bilingual (Turkish/English) dictionary, a scientific calculator, a tablet
   drawing board and five science labs.
 
@@ -170,6 +174,8 @@ python test_ai_terminal.py
 python test_egitim_token.py
 python test_ai_code_guard.py
 python test_public_claims.py
+python test_simulations.py
+python smoke_simulation_player.py
 python smoke_dark_theme.py
 python smoke_lazy_panels.py
 ```

@@ -99,7 +99,7 @@ UI_TEXT = {
         "course_resources":"Course Resources", "pdf_reader":"PDF Reader / Annotator", "ai_tutor":"AI Tutor", "smart_wacom":"Smart Tablet Drawing Board", "calculator":"Calculator",
         "data_lab":"Math Data Lab", "physics_lab":"Physics → Math Lab", "chemistry_lab":"Chemistry → Math Lab", "dna_lab":"Math DNA Lab", "quantum_lab":"Math Quantum Lab", "dictionary":"Science Dictionary", "visual_math_lab":"Visual Math Lab", "student_tracker":"Student Tracker",
         "course_resources_full":"Course Resources / Kurs Kaynakları", "calculator_full":"Calculator / Hesap Makinesi", "dictionary_full":"Science Dictionary / Bilim Sözlüğü", "visual_math_lab_full":"Visual Math Lab / Görsel Matematik Laboratuvarı", "student_tracker_full":"Student Tracker / Öğrenci Takip",
-        "browse":"Browse", "search":"Search", "open_resource":"Open Resource", "read_show":"Read / Show", "open_folder_location":"Open Folder Location", "print":"Print",
+        "browse":"Browse", "search":"Search", "open_resource":"Open Resource", "read_show":"Read / Show", "open_folder_location":"Open Folder Location", "print":"Print", "simulation_btn":"▶ Simulation",
         "course_tracker":"Course Tracker", "track_progress":"Track progress, difficulty, and feedback.", "save_progress":"Save Progress", "open_token_log_folder":"Open Token Log Folder", "open_resources_folder":"Open Resources Folder",
         "question_topic":"Question / Topic You Do Not Understand", "attach_image":"Attach PNG/JPEG Problem Image", "clear_image":"Clear Image", "no_image":"No image attached.",
         "ask_ai_resource":"Ask AI About Selected Resource", "solve_question":"Solve Question", "solve_image":"Solve Attached Image", "feedback_report":"Create Feedback Report", "clear":"Clear", "ai_answer":"AI / Solver Answer",
@@ -124,7 +124,7 @@ UI_TEXT = {
         "course_resources":"Kurs Kaynakları", "pdf_reader":"PDF Okuyucu / Not Alma", "ai_tutor":"Yapay Zeka Öğretmen", "smart_wacom":"Akıllı Tablet Çizim Tahtası", "calculator":"Hesap Makinesi",
         "data_lab":"Matematik Veri Laboratuvarı", "physics_lab":"Fizik → Matematik Laboratuvarı", "chemistry_lab":"Kimya → Matematik Laboratuvarı", "dna_lab":"Matematik DNA Laboratuvarı", "quantum_lab":"Matematik Kuantum Laboratuvarı", "dictionary":"Bilim Sözlüğü", "visual_math_lab":"Görsel Matematik Laboratuvarı", "student_tracker":"Öğrenci Takip",
         "course_resources_full":"Course Resources / Kurs Kaynakları", "calculator_full":"Calculator / Hesap Makinesi", "dictionary_full":"Science Dictionary / Bilim Sözlüğü", "visual_math_lab_full":"Visual Math Lab / Görsel Matematik Laboratuvarı", "student_tracker_full":"Student Tracker / Öğrenci Takip",
-        "browse":"Gözat", "search":"Ara", "open_resource":"Kaynağı Aç", "read_show":"Oku / Göster", "open_folder_location":"Klasör Konumu Aç", "print":"Yazdır",
+        "browse":"Gözat", "search":"Ara", "open_resource":"Kaynağı Aç", "read_show":"Oku / Göster", "open_folder_location":"Klasör Konumu Aç", "print":"Yazdır", "simulation_btn":"▶ Simülasyon",
         "course_tracker":"Kurs Takibi", "track_progress":"İlerleme, zorluk ve geri bildirimi takip et.", "save_progress":"İlerlemeyi Kaydet", "open_token_log_folder":"Token Log Klasörünü Aç", "open_resources_folder":"Kaynak Klasörünü Aç",
         "question_topic":"Anlamadığın Soru / Konu", "attach_image":"PNG/JPEG Soru Görseli Ekle", "clear_image":"Görseli Temizle", "no_image":"Görsel eklenmedi.",
         "ask_ai_resource":"Seçili Kaynağı AI'a Sor", "solve_question":"Soruyu Çöz", "solve_image":"Ekli Görseli Çöz", "feedback_report":"Geri Bildirim Raporu Oluştur", "clear":"Temizle", "ai_answer":"AI / Çözücü Cevabı",
@@ -579,7 +579,7 @@ class MathCourseApp(tk.Tk):
             self.workspace_title_label.config(text=self.t("workspace")); self.workspace_manager_button.config(text=self.t("workspace_manager")); self.toggle_resources_button.config(text=self.t("toggle_resources")); self.toggle_tracker_button.config(text=self.t("toggle_tracker"))
             if hasattr(self, "layout_mode_title"): self.layout_mode_title.config(text=self.t("layout_mode") + ":")
             self._update_layout_mode_buttons()
-            self.left_header_label.config(text=self.t("course_resources")); self.search_label.config(text=self.t("search")); self.open_resource_button.config(text=self.t("open_resource")); self.read_show_button.config(text=self.t("read_show")); self.open_location_button.config(text=self.t("open_folder_location")); self.print_button.config(text=self.t("print"))
+            self.left_header_label.config(text=self.t("course_resources")); self.search_label.config(text=self.t("search")); self.open_resource_button.config(text=self.t("open_resource")); self.read_show_button.config(text=self.t("read_show")); self.open_location_button.config(text=self.t("open_folder_location")); self.print_button.config(text=self.t("print")); self.simulation_button.config(text=self.t("simulation_btn"))
             self.tracker_header_label.config(text=self.t("course_tracker")); self.tracker_desc_label.config(text=self.t("track_progress")); self.save_progress_button.config(text=self.t("save_progress")); self.open_token_folder_button.config(text=self.t("open_token_log_folder")); self.open_resources_folder_button.config(text=self.t("open_resources_folder"))
             self.ai_question_label.config(text=self.t("question_topic")); self.attach_image_button.config(text=self.t("attach_image")); self.clear_image_button.config(text=self.t("clear_image")); self.ask_ai_resource_button.config(text=self.t("ask_ai_resource")); self.solve_question_button.config(text=self.t("solve_question")); self.solve_image_button.config(text=self.t("solve_image")); self.feedback_button.config(text=self.t("feedback_report")); self.clear_ai_button.config(text=self.t("clear")); self.ai_answer_label.config(text=self.t("ai_answer"))
             if not self.attached_image_path: self.image_label.config(text=self.t("no_image"))
@@ -724,10 +724,12 @@ class MathCourseApp(tk.Tk):
         # scrollbar is only a fallback for very long names in a narrowed panel.
         tree_holder = ttk.Frame(left, style="Panel.TFrame")
         tree_holder.pack(fill="both", expand=True, padx=8, pady=8)
-        self.tree = ttk.Treeview(tree_holder, show="tree", columns=("st", "info"))
-        self.tree.column("#0", width=258, minwidth=160, stretch=True)
+        self.tree = ttk.Treeview(tree_holder, show="tree", columns=("st", "info", "sim"))
+        self.tree.column("#0", width=232, minwidth=150, stretch=True)
         self.tree.column("st", width=28, anchor="center", stretch=False)
         self.tree.column("info", width=26, anchor="center", stretch=False)
+        # ▶ = bu konunun Python simülasyonlarını oynatıcıda aç (simulations/).
+        self.tree.column("sim", width=26, anchor="center", stretch=False)
         tree_vs = ttk.Scrollbar(tree_holder, orient="vertical", command=self.tree.yview)
         tree_hs = ttk.Scrollbar(tree_holder, orient="horizontal", command=self.tree.xview)
         self.tree.configure(yscrollcommand=tree_vs.set, xscrollcommand=tree_hs.set)
@@ -755,6 +757,10 @@ class MathCourseApp(tk.Tk):
         self.open_location_button.pack(side="left", fill="x", expand=True, padx=2, pady=2)
         self.print_button = RoundedButton(resource_row2, text=self.t("print"), parent_bg=THEME["panel"], command=self.print_selected_resource)
         self.print_button.pack(side="left", fill="x", expand=True, padx=2, pady=2)
+        resource_row3 = ttk.Frame(btns, style="Panel.TFrame")
+        resource_row3.pack(fill="x")
+        self.simulation_button = RoundedButton(resource_row3, text=self.t("simulation_btn"), parent_bg=THEME["panel"], bg=THEME["purple"], fg="#FFFFFF", hover="#9B7BF7", command=self.open_selected_simulation)
+        self.simulation_button.pack(side="left", fill="x", expand=True, padx=2, pady=2)
 
         center = ttk.Frame(main)
         self.center_panel = center
@@ -2067,28 +2073,28 @@ class MathCourseApp(tk.Tk):
             for course in group_courses:
                 done, total = self.course_read_stats(course)
                 header = self._course_header_text(course["name"], done, total)
-                course_iid = self.tree.insert(group_iid, "end", text=header, open=True, values=("", ""))
+                course_iid = self.tree.insert(group_iid, "end", text=header, open=True, values=("", "", "▶"))
                 self.path_by_iid[course_iid] = course["path"]
                 self.course_name_by_iid[course_iid] = course["name"]
                 for res in course.get("resources", []):
                     if match(res):
                         iid = self.tree.insert(course_iid, "end",
                                                text=self._read_icon(course["name"], res) + res.name,
-                                               values=(self._read_check(course["name"], res), "ℹ"))
+                                               values=(self._read_check(course["name"], res), "ℹ", "▶"))
                         self.path_by_iid[iid] = str(res)
                         self.iid_by_path[str(res)] = iid
                 for sec in course.get("children", []):
                     self.add_section(course_iid, sec, match, course["name"])
 
     def add_section(self, parent, sec, match, course_name=""):
-        sec_iid = self.tree.insert(parent, "end", text="📁 " + sec["name"], open=False, values=("", "ℹ"))
+        sec_iid = self.tree.insert(parent, "end", text="📁 " + sec["name"], open=False, values=("", "ℹ", "▶"))
         self.path_by_iid[sec_iid] = sec["path"]
         count = 0
         for item in sec.get("items", []):
             if match(item):
                 iid = self.tree.insert(sec_iid, "end",
                                        text=self._read_icon(course_name, item) + item.name,
-                                       values=(self._read_check(course_name, item), "ℹ"))
+                                       values=(self._read_check(course_name, item), "ℹ", "▶"))
                 self.path_by_iid[iid] = str(item)
                 self.iid_by_path[str(item)] = iid
                 count += 1
@@ -2117,18 +2123,22 @@ class MathCourseApp(tk.Tk):
             col = self.tree.identify_column(event.x)
         except Exception:
             return
-        if col not in ("#1", "#2"):
+        if col not in ("#1", "#2", "#3"):
             return
         iid = self.tree.identify_row(event.y)
         path = self.path_by_iid.get(iid)
         if not path:
             return
+        if col == "#3":
+            self.tree.selection_set(iid)
+            self.open_simulation_for_item(iid)
+            return "break"
         if col == "#2":
             p = Path(str(path))
             if not (p.is_file() or p.is_dir()):
                 return
             self.open_topic_info_window(self.topic_display_name(p),
-                                        self.tree_course_name(iid))
+                                        self.tree_course_name(iid), iid=iid)
             return "break"
         if not Path(str(path)).is_file():
             return
@@ -2151,7 +2161,7 @@ class MathCourseApp(tk.Tk):
     def _topic_info_cache_save(self, cache):
         safe_json_save(TOPIC_INFO_CACHE_PATH, cache)
 
-    def open_topic_info_window(self, topic, course_name=""):
+    def open_topic_info_window(self, topic, course_name="", iid=None):
         """Separate window explaining one topic: Nedir? + Ne İçin Kullanılır?
 
         V45: the PRIMARY source is the embedded, hand-written knowledge base
@@ -2305,8 +2315,49 @@ class MathCourseApp(tk.Tk):
         ai_button["btn"].pack(side="left", padx=2)
         RoundedButton(btns, text="📋 Kopyala", parent_bg=THEME["bg"],
                       command=copy_text).pack(side="left", padx=2)
+        if iid is not None:
+            RoundedButton(btns, text=self.t("simulation_btn"), parent_bg=THEME["bg"],
+                          bg=THEME["purple"], fg="#FFFFFF", hover="#9B7BF7",
+                          command=lambda: self.open_simulation_for_item(iid)).pack(side="left", padx=2)
         RoundedButton(btns, text="Kapat", parent_bg=THEME["bg"],
                       command=win.destroy).pack(side="right", padx=2)
+
+    # ---- ▶ Python simülasyonları (simulations/ paketi) ------------------- #
+    def open_simulation_for_item(self, iid):
+        """Ağaçtaki konu için Simülasyon Oynatıcı'yı açar. Konu adı (dosya/klasör)
+        ve kurs adı gömülü örneklerle eşleştirilir; oynatıcıdaki "Kaynaktaki
+        örnekleri tara" bu düğümün dosyalarını tarar."""
+        path = self.path_by_iid.get(iid)
+        course_name = self.tree_course_name(iid)
+        course_path = None
+        item = iid
+        while item:
+            if item in getattr(self, "course_name_by_iid", {}):
+                course_path = self.path_by_iid.get(item)
+                break
+            item = self.tree.parent(item)
+        rel = ()
+        if path and course_path:
+            try:
+                rel = Path(str(path)).relative_to(Path(str(course_path))).parts
+            except ValueError:
+                rel = (Path(str(path)).name,)
+        try:
+            from simulations.player import open_player
+            open_player(self, path, course_name, rel, lang=self.language)
+        except Exception as e:
+            self.set_status(f"Simülasyon açılamadı: {type(e).__name__}: {e}", THEME["danger"])
+
+    def open_selected_simulation(self):
+        sel = self.tree.selection()
+        if sel:
+            self.open_simulation_for_item(sel[0])
+            return
+        try:
+            from simulations.player import open_player
+            open_player(self, None, "", (), lang=self.language)
+        except Exception as e:
+            self.set_status(f"Simülasyon açılamadı: {type(e).__name__}: {e}", THEME["danger"])
 
     def show_tree_context_menu(self, event):
         iid = self.tree.identify_row(event.y)
@@ -2314,10 +2365,18 @@ class MathCourseApp(tk.Tk):
             return
         self.tree.selection_set(iid)
         path = self.path_by_iid.get(iid)
-        if not path or not Path(str(path)).is_file():
+        if not path:
+            return
+        menu = tk.Menu(self, tearoff=0)
+        menu.add_command(label=self.t("simulation_btn"), command=lambda: self.open_simulation_for_item(iid))
+        if not Path(str(path)).is_file():
+            try:
+                menu.tk_popup(event.x_root, event.y_root)
+            finally:
+                menu.grab_release()
             return
         course_name = self.tree_course_name(iid)
-        menu = tk.Menu(self, tearoff=0)
+        menu.add_separator()
         menu.add_command(label="✅ Bitirdim olarak işaretle",
                          command=lambda: self.set_file_read_status(course_name, path, "done"))
         menu.add_command(label="📖 Okunuyor olarak işaretle",
