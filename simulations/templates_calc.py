@@ -194,7 +194,7 @@ def _sval(v, default=0):
     return sp.Integer(default)
 
 
-def _simp(e, lim=50):
+def _simp(e, lim=30):
     try:
         if sp.count_ops(e) <= lim:
             return sp.simplify(e)
@@ -340,9 +340,10 @@ def _big(f, x, t, y):
     try:
         v = sp.N(f.subs(x, t), 8)
         if v.is_real and v.is_finite and v != 0:
-            ee = int(sp.floor(sp.log(abs(v), 10)))
-            mm = float(v / sp.Integer(10) ** ee)
-            return f"{mm:.4g}·10" + "".join(_SUP.get(c, "") for c in str(ee))
+            lg = float(sp.N(sp.log(abs(v), 10), 20))
+            ee = int(math.floor(lg))
+            mm = (1.0 if v > 0 else -1.0) * 10 ** (lg - ee)
+            return (f"{mm:.4g}·10" + "".join(_SUP.get(c, "") for c in str(ee))).replace("-", "−")
     except Exception:
         pass
     return "—"
@@ -407,8 +408,9 @@ def _yr(vals, extra=(), pad=0.12):
     return lo - p, hi + p
 
 
-def _brk(ys, span):
-    # insert gaps at jumps / vertical asymptotes so no false vertical segments are drawn
+def _brk(ys, span, xs=None, h=None):
+    # insert gaps at jumps / vertical asymptotes so no false vertical segments are drawn;
+    # with (xs, h) a candidate gap is kept only if f really jumps there (not for steep x**(1/3))
     ys = np.array(ys, dtype=float)
     if len(ys) < 3:
         return ys
@@ -417,7 +419,11 @@ def _brk(ys, span):
     med = float(np.median(fin)) if len(fin) else 0.0
     bad = (d > 0.5 * span) | ((d > 0.04 * span) & (d > 60 * med + 1e-12))
     idx = np.nonzero(bad)[0]
-    ys[idx + 1] = np.nan
+    if xs is not None and h is not None and len(idx) <= 40:
+        sc = float(np.nanmax(np.abs(ys))) if np.any(np.isfinite(ys)) else 1.0
+        idx = [k for k in idx if _jump(h, xs[k], xs[k + 1], min(sc, 10 * span))]
+    for k in idx:
+        ys[k + 1] = np.nan
     return ys
 
 
@@ -513,6 +519,72 @@ def _poles(h, a, b, n=8001):
         if (vc != vc or vc > 1e7) and a < c < b:
             out.append(float(c))
     return sorted(out)
+
+
+_ELEM = (sp.sin, sp.cos, sp.tan, sp.cot, sp.sec, sp.csc, sp.exp, sp.log, sp.asin, sp.acos, sp.atan,
+         sp.sinh, sp.cosh, sp.tanh, sp.Abs)
+
+
+def _deg(u, x, mx):
+    try:
+        return u.is_polynomial(x) and sp.degree(u, x) <= mx
+    except Exception:
+        return False
+
+
+def _basic(e, x, mx=2):
+    # constant, polynomial, u**r (u polynomial of low degree), a**u, g(u) for elementary g
+    if not e.has(x) or _deg(e, x, 6):
+        return True
+    if e.is_Pow:
+        b, p = e.args
+        if not p.has(x):
+            if p.is_Rational and _deg(b, x, mx):
+                return True
+            if p.is_Integer and -2 <= p <= 4 and p != 0 and isinstance(b, _ELEM) and _basic(b, x, mx):
+                return True
+            # (c + k·g(ax + b))^r : the usual u-substitution shapes such as 1/(1 + sin x), 1/(1 + e^x)
+            if b.is_Add and p in (-2, -1, sp.Rational(-1, 2), sp.Rational(1, 2), 2, 3):
+                nonc = [t for t in b.args if t.has(x)]
+                if len(nonc) == 1:
+                    g = [u for u in sp.Mul.make_args(nonc[0]) if u.has(x)]
+                    return len(g) == 1 and isinstance(g[0], _ELEM) and _deg(g[0].args[0], x, 1)
+            return False
+        return (not b.has(x)) and _deg(p, x, mx)
+    if isinstance(e, _ELEM):
+        return _deg(e.args[0], x, mx)
+    return False
+
+
+def _tame(f, x):
+    # True when symbolic integration is expected to finish quickly (sympy has no time-out)
+    try:
+        if sp.count_ops(f) > 40:
+            return False
+        if f.is_polynomial(x) or f.is_rational_function(x):
+            return True
+        for term in sp.Add.make_args(f):
+            fac = [t for t in sp.Mul.make_args(term) if t.has(x)]
+            poly = [t for t in fac if _deg(t, x, 6)]
+            alg = [t for t in fac if t not in poly and t.is_Pow and _deg(t.args[0], x, 6) and not t.args[1].has(x)]
+            trans = [t for t in fac if t not in poly and t not in alg]
+            if len(fac) > 3 or len(trans) > 2:
+                return False
+            if trans:
+                # integration by parts / substitution shapes: polynomial × g(linear), x^r × ln x, ...
+                logs = all(isinstance(t, sp.log) and t.args[0] == x for t in trans)
+                if alg and not (logs and all(t.args[0] == x for t in alg)):
+                    if not (len(alg) == 1 and len(trans) == 1 and not poly and isinstance(trans[0], _ELEM)
+                            and _deg(trans[0].args[0], x, 2) and alg[0].args[1].is_Integer):
+                        return False
+            elif len(alg) > 2 or (len(alg) == 2 and not any(t.args[0] == x for t in alg)):
+                return False
+            mx = 1 if len(trans) == 2 else 2
+            if not all(_basic(t, x, mx) for t in fac):
+                return False
+        return True
+    except Exception:
+        return False
 
 
 def _jump(h, u, w, scale):
@@ -679,6 +751,12 @@ def _side(f, x, h, a, af, sgn, inf):
     if num[0] == "undef":
         return {"k": "undef", "v": None, "approx": False}
     sy = None
+    trig = f.has(sp.sin, sp.cos, sp.tan, sp.cot, sp.sec, sp.csc)
+    if inf and (f.has(sp.tan, sp.cot, sp.sec, sp.csc) or (trig and num[0] == "dne")):
+        # periodic factors at infinity: sympy's series machinery can run for minutes; trust the numbers
+        if num[0] == "fin":
+            return {"k": "fin", "v": float(num[1]), "approx": True}
+        return {"k": num[0], "v": None, "approx": False}
     try:
         if inf:
             r = sp.limit(f, x, sp.oo if sgn > 0 else -sp.oo)
@@ -1121,7 +1199,7 @@ def _build_fin(fig, P, A, tr):
     else:
         lo, hi = _yr(ys, ext)
     span = hi - lo
-    yb = _brk(ys, span)
+    yb = _brk(ys, span, xs, h)
     ax.set_xlim(xs[0], xs[-1])
     ax.set_ylim(lo, hi)
     _axes_style(ax)
@@ -1289,7 +1367,7 @@ def _build_inf(fig, P, A, tr):
         ax.set_ylim(lo, hi)
         p = _ramp(i, 0, 20)
         m = max(2, int(p * len(xs)))
-        yb = _brk(ys, hi - lo)
+        yb = _brk(ys, hi - lo, xs, h)
         if sg > 0:
             curve.set_data(xs[:m], yb[:m])
         else:
@@ -1333,14 +1411,15 @@ def _build_inf(fig, P, A, tr):
     return N, update
 
 
-def _lin(c):
+def _lin(c, v="x"):
     if c == 0:
-        return "x"
-    return f"x - {c}" if c > 0 else f"x + {-c}"
+        return v
+    return f"{v} - {c}" if c > 0 else f"{v} + {-c}"
 
 
 def vary(P, rnd):
     f = str(P.get("f", "")).lower()
+    vn = str(_parse(P.get("f", "x"))[0])
     inf = _infsign(P.get("a", 0))
     out = {}
     if inf:
@@ -1349,19 +1428,19 @@ def vary(P, rnd):
         if "**2" in f:
             r = rnd.choice([1, 2, 3])
             c = rnd.choice([1, 2, 3, 5, 7])
-            out = {"f": f"({k * r}*x**2 + {c})/({r}*x**2 + {s})", "a": "oo" if inf > 0 else "-oo"}
+            out = {"f": f"({k * r}*{vn}**2 + {c})/({r}*{vn}**2 + {s})", "a": "oo" if inf > 0 else "-oo"}
         else:
-            out = {"f": f"{k}*x/(x + {s})", "a": "oo" if inf > 0 else "-oo"}
+            out = {"f": f"{k}*{vn}/({vn} + {s})", "a": "oo" if inf > 0 else "-oo"}
     elif "abs" in f:
         c = rnd.randint(-3, 4)
         k = rnd.choice([1, 2, 3])
-        out = {"f": (f"{k}*" if k != 1 else "") + f"abs({_lin(c)})/({_lin(c)})", "a": c}
+        out = {"f": (f"{k}*" if k != 1 else "") + f"abs({_lin(c, vn)})/({_lin(c, vn)})", "a": c}
     else:
         r = rnd.choice([v for v in range(-4, 6) if v != 0])
         s = rnd.choice([v for v in range(-5, 6) if v != -r])
-        x = sp.Symbol("x")
-        num = sp.expand((x - r) * (x + s))
-        out = {"f": f"({sp.sstr(num)})/({_lin(r)})", "a": r}
+        z = sp.Symbol(vn)
+        num = sp.expand((z - r) * (z + s))
+        out = {"f": f"({sp.sstr(num)})/({_lin(r, vn)})", "a": r}
     if "dir" in P and not inf:
         out["dir"] = P["dir"]
     for k2, v2 in P.items():
@@ -1714,8 +1793,9 @@ def build(fig, P):
     t_ = _info(bx, 10.5, xs, dys, wide=0.4)
     t_.set_text(dlab)
     t_.set_color(PURPLE)
-    yb = _brk(ys, hi - lo)
-    dyb = _brk(dys, dhi - dlo)
+    dys = np.where(np.isfinite(ys), dys, np.nan)
+    yb = _brk(ys, hi - lo, xs, h)
+    dyb = _brk(dys, dhi - dlo, xs, dh)
     curve, = ax.plot([], [], color=BLUE, lw=2.4, zorder=3)
     pdot, = ax.plot([], [], "o", color=RED, ms=9, zorder=7)
     qdot, = ax.plot([], [], "o", color=ORANGE, ms=8, zorder=7)
@@ -1907,6 +1987,8 @@ _BADF = (sp.Integral, sp.hyper, sp.meijerg, sp.exp_polar)
 
 def _antider(f, x):
     G = None
+    if not _tame(f, x):
+        return None
     try:
         G = sp.integrate(f, x, manual=True)
         if G.has(*_BADF):
@@ -2022,7 +2104,7 @@ def _analyze(P):
                 val, how = None, ""
     if val is None and (A["improper"] or F is None) and not A["undef"]:
         try:
-            if sp.count_ops(f) <= 30:
+            if _tame(f, x):
                 r = sp.integrate(f, (x, a, b))
                 if not r.has(*_BADF):
                     if r in (sp.oo, -sp.oo, sp.zoo, sp.nan) or not _finite(r):
@@ -2205,7 +2287,7 @@ def build(fig, P):
                    f"A({vn}) = ∫ f :  area accumulated over [{A['sa']}, {vn}]"))
     t_.set_color(PURPLE)
     curve, = ax.plot([], [], color=BLUE, lw=2.4, zorder=4)
-    Yb = _brk(Y, yhi - ylo)
+    Yb = _brk(Y, yhi - ylo, X, h)
     ax.axvline(pa, color=GRAY, ls=":", lw=1.2)
     ax.axvline(pb, color=GRAY, ls=":", lw=1.2)
     ax.text(pa, ylo + 0.02 * (yhi - ylo), " " + A["sa"], color=GRAY, fontsize=9)
@@ -2377,7 +2459,7 @@ def _roots_in(e, x, a, b, eh):
     out = []
     ok = False
     try:
-        if e is not None and not e.is_zero and (_realize(e) == e or _fl(a) >= 0):
+        if e is not None and not e.is_zero and (_realize(e) == e or _fl(a) >= 0) and sp.count_ops(e) <= 25:
             sol = sp.solveset(sp.Eq(e, 0), x, sp.Interval.open(a, b))
             if isinstance(sol, sp.FiniteSet):
                 out = [(_simp(c), _fl(c)) for c in sol if _finite(c)]
@@ -2462,7 +2544,7 @@ def _analyze(P):
         try:
             if e.is_polynomial(x):
                 return sp.factor(e) if len(sp.sstr(sp.factor(e))) <= len(sp.sstr(sp.expand(e))) + 4 else sp.expand(e)
-            if e.is_rational_function(x):
+            if e.is_rational_function(x) and sp.count_ops(e) <= 40:
                 return sp.factor(sp.together(e))
             s2 = _simp(e)
             return s2 if len(sp.sstr(s2)) < len(sp.sstr(e)) else e
@@ -2653,7 +2735,7 @@ def build(fig, P):
     _axes_style(ax)
     ax.set_title(_mt(f"f({vn}) = " + sp.latex(A["f"]) + r",\ \ [" + sp.latex(A["a"]) + ", " + sp.latex(A["b"]) + "]",
                      f"f({vn}) = {A['fx']},  [{A['sa']}, {A['sb']}]"), fontsize=12)
-    Yb = _brk(Y, yhi - ylo)
+    Yb = _brk(Y, yhi - ylo, X, h)
     Yin = np.where(inside, Yb, np.nan)
     Yout = np.where(inside, np.nan, Yb)
     curve, = ax.plot([], [], color=BLUE, lw=2.5, zorder=4)
@@ -2893,7 +2975,7 @@ def _analyze(P):
     A["sums"] = [(n, _sum(h, af, bf, n, meth)[0]) for n in _NS]
     exact = None
     try:
-        F = sp.integrate(f, x, manual=True)
+        F = sp.integrate(f, x, manual=True) if _tame(f, x) else sp.Integral(f, x)
         if not F.has(sp.Integral):
             v = _simp(F.subs(x, b) - F.subs(x, a))
             if _finite(v):
@@ -3020,6 +3102,7 @@ def solve(P):
     if note:
         st.append(note)
     fmt["s4"] = s4t
+    fmt["exact"] = ex
     ans = (f"{S}₄ = {s4t};  n → ∞ iken {S}ₙ → ∫ = {ex}", f"{S}₄ = {s4t};  as n → ∞, {S}ₙ → ∫ = {ex}")
     return {"answer": ans, "steps": st, "fmt": fmt}
 
@@ -3044,7 +3127,7 @@ def build(fig, P):
     ax.set_xlabel(vn, fontsize=10)
     ax.set_title(_mt(f"f({vn}) = " + sp.latex(A["f"]) + r",\ \ [" + sp.latex(A["a"]) + ", " + sp.latex(A["b"]) + "]",
                      f"f({vn}) = {A['fx']}"), fontsize=12)
-    ax.plot(X, _brk(Y, yhi - ylo), color=BLUE, lw=2.4, zorder=5)
+    ax.plot(X, _brk(Y, yhi - ylo, X, h), color=BLUE, lw=2.4, zorder=5)
     ax.axvline(af, color=GRAY, ls=":", lw=1)
     ax.axvline(bf, color=GRAY, ls=":", lw=1)
     shapes = []
@@ -3057,7 +3140,8 @@ def build(fig, P):
         ax.add_patch(pch)
         shapes.append(pch)
     sdots, = ax.plot([], [], "o", color=ORANGE, ms=5, zorder=6)
-    info = _info(ax, 10.5, X, Y)
+    ins = (X >= af) & (X <= bf)
+    info = _info(ax, 10.5, np.concatenate([X, X[ins], X[ins]]), np.concatenate([Y, 0.5 * Y[ins], 0.1 * Y[ins]]))
     # convergence panel
     sums = A["sums"]
     sv = [v for _, v in sums]
@@ -3180,10 +3264,10 @@ EXAMPLES += [
            "with a {method} sum using n = 4 subintervals and compare with the exact value."),
      "P": {"f": "16 - t**2", "a": 0, "b": 4, "method": "right"}},
     {"id": "calc1-riemann-3", "kind": "riemann_sum", "topics": ["natural logarithm", "ln 2", "doğal logaritma"],
-     "title": ("Yamuk kuralı ile ln 2", "ln 2 with the trapezoidal rule"),
-     "q": ("{a} ile {b} arasında f(x) = {pretty_f} altındaki alan ln 2'dir. Bu alanı {method} kuralıyla n = 4 "
-           "için yaklaşık hesapla; n arttıkça hata nasıl küçülür?",
-           "The area under f(x) = {pretty_f} from {a} to {b} equals ln 2. Approximate it with the {method} rule "
+     "title": ("Yamuk kuralı ile logaritma", "A logarithm with the trapezoidal rule"),
+     "q": ("f(x) = {pretty_f} eğrisi altında [{a}, {b}] aralığındaki alanın tam değeri: {exact}. Bu alanı {method} "
+           "kuralıyla n = 4 için yaklaşık hesapla; n arttıkça hata nasıl küçülür?",
+           "The exact area under f(x) = {pretty_f} on [{a}, {b}] is {exact}. Approximate it with the {method} rule "
            "for n = 4; how does the error shrink as n grows?"),
      "P": {"f": "1/x", "a": 1, "b": 2, "method": "trap"}},
 ]
@@ -3934,7 +4018,7 @@ def build(fig, P):
         ax.set_ylim(lo, hi)
         p = _ramp(i, 0, 14)
         mm = max(2, int(p * len(X))) if i < 16 else len(X)
-        curve.set_data(X[:mm], _brk(Y, hi - lo)[:mm])
+        curve.set_data(X[:mm], _brk(Y, hi - lo, X, h)[:mm])
         shown = [x0] if i >= 6 else []
         for k in range(m):
             _, xk, fk, dk, xn = its[k]
@@ -4005,7 +4089,7 @@ def vary(P, rnd):
         return {"f": f"cos({vn}) - {vn}" if c == 1 else f"cos({vn}) - {vn}/{c}", "x0": 1, "n": n}
     if "**3" in raw:
         a = rnd.choice([1, 2, 3])
-        b = rnd.choice([1, 3, 4, 5, 7])
+        b = rnd.choice([3, 4, 5, 7])
         g = sp.Symbol(vn)
         hh = _num(g ** 3 - a * g - b, g)
         z = _zeros(hh, -10, 10)
@@ -4032,9 +4116,11 @@ EXAMPLES += [
            "Find the real root of {pretty_f} = 0 with {n} Newton steps starting from x₀ = {x0}."),
      "P": {"f": "x**3 - 2*x - 5", "x0": 2, "n": 4}},
     {"id": "calc1-newton-3", "kind": "newton_method", "topics": ["transcendental equation", "fixed point"],
-     "title": ("cos x = x denklemi", "Solving cos x = x"),
-     "q": ("cos x = x denklemini f(x) = {pretty_f} = 0 olarak yaz ve x₀ = {x0} ile {n} Newton adımı uygula.",
-           "Write cos x = x as f(x) = {pretty_f} = 0 and apply {n} Newton steps from x₀ = {x0}."),
+     "title": ("Kosinüs ile doğrunun kesişimi", "Where a cosine meets a line"),
+     "q": ("cos x eğrisi ile bir doğrunun kesişimi f(x) = {pretty_f} = 0 denklemini verir. Cebirsel çözüm yok; "
+           "x₀ = {x0} ile {n} Newton adımı uygula.",
+           "The crossing of the cosine curve with a line gives f(x) = {pretty_f} = 0, which has no algebraic "
+           "solution. Apply {n} Newton steps from x₀ = {x0}."),
      "P": {"f": "cos(x) - x", "x0": 1, "n": 4}},
 ]
 
@@ -4131,7 +4217,7 @@ def _analyze(P):
     cs = []
     if m is not None:
         try:
-            if d is not None and (_realize(d) == d or af >= 0):
+            if d is not None and (_realize(d) == d or af >= 0) and sp.count_ops(d) <= 25:
                 sol = sp.solveset(sp.Eq(d, m), x, sp.Interval.open(a, b))
                 if isinstance(sol, sp.FiniteSet):
                     cs = [(_simp(c), _fl(c)) for c in sol if _finite(c)]
@@ -4188,8 +4274,10 @@ def solve(P):
         try:
             cc = sp.Symbol("c", real=True)
             eqs = f":  {_ps(A['d'].subs(A['x'], cc))} = {_short(m)}"
-            alls = sp.solveset(sp.Eq(A["d"], m), A["x"], sp.S.Reals) if _realize(A["d"]) == A["d"] else None
-            if alls is None and A["af"] >= 0:
+            alls = None
+            if sp.count_ops(A["d"]) <= 25 and _realize(A["d"]) == A["d"]:
+                alls = sp.solveset(sp.Eq(A["d"], m), A["x"], sp.S.Reals)
+            if alls is None and A["af"] >= 0 and sp.count_ops(A["d"]) <= 25:
                 alls = sp.solveset(sp.Eq(A["d"], m), A["x"], sp.Interval.open(0, sp.oo))
             if isinstance(alls, sp.FiniteSet):
                 outs = [r for r in alls if _finite(r) and not (A["af"] < _fl(r) < A["bf"])]
@@ -4253,8 +4341,8 @@ def build(fig, P):
     t_ = _info(bx, 10, X, DY, wide=0.45)
     t_.set_text(_T(P, f"f'({vn}) ve y = m (kesen eğimi)", f"f'({vn}) and y = m (secant slope)"))
     t_.set_color(PURPLE)
-    Yb = _brk(Y, yhi - ylo)
-    DYb = _brk(DY, dhi - dlo)
+    Yb = _brk(Y, yhi - ylo, X, h)
+    DYb = _brk(np.where(np.isfinite(Y), DY, np.nan), dhi - dlo, X, dh)
     curve, = ax.plot([], [], color=BLUE, lw=2.4, zorder=3)
     ab, = ax.plot([], [], "o", color="#111827", ms=8, zorder=7)
     abl = [ax.text(0, 0, "", fontsize=10, zorder=8) for _ in range(2)]
