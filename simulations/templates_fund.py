@@ -1246,6 +1246,9 @@ def vary(P, rnd):
         toks = _tokens(src)
     except _Err:
         toks = None
+    R0 = _run(src, False)
+    v0 = R0["val"] if R0["err"] is None else None
+    lim = max(200, 2 * abs(v0)) if v0 is not None else 999
     forms = ["{a} + {b}*({c} - {d})^2 / {e}", "({a} + {b})*{c} - {d}^2", "{a} - {b}*{c} + {d}*{e}",
              "({a} - {b})^2 + {c}*{d}", "{a}*({b} + {c}) - {d}*{e}", "{a}^2 - ({b} + {c}*{d})"]
     for attempt in range(400):
@@ -1258,6 +1261,9 @@ def vary(P, rnd):
                         v = rnd.choice([2, 2, 3])
                     elif prev is not None and prev[0] == "o" and prev[1] == "/":
                         v = rnd.randint(2, 9)
+                    elif abs(t[1]) >= 13:
+                        lo_ = max(2, int(abs(t[1]) * 0.6))
+                        v = rnd.randint(lo_, max(lo_ + 1, int(abs(t[1]) * 1.5)))
                     else:
                         v = rnd.randint(1, 12)
                     parts.append(str(v))
@@ -1273,8 +1279,9 @@ def vary(P, rnd):
             vals = {k: rnd.randint(1, 12) for k in "abcde"}
             cand = rnd.choice(forms).format_map(vals)
         R = _run(cand, False)
-        if (R["err"] is None and R["val"] is not None and len(R["ops"]) >= 2 and abs(R["val"]) <= 999
-                and all(v.denominator == 1 for v in R["vals"]) and cand != src):
+        if (R["err"] is None and R["val"] is not None and len(R["ops"]) >= 2 and abs(R["val"]) <= lim
+                and all(v.denominator == 1 for v in R["vals"]) and cand != src
+                and (v0 is None or attempt >= 300 or ((R["val"] > 0) == (v0 > 0) and (R["val"] < 0) == (v0 < 0)))):
             return {"expr": cand}
     return {"expr": "3 + 4*(6 - 2)^2 / 8"}
 ''',
@@ -1287,15 +1294,15 @@ EXAMPLES += [
      "P": {"expr": "3 + 4*(6 - 2)^2 / 8"}},
     {"id": "fund-ops-2", "kind": "order_ops", "topics": ["shopping", "alışveriş", "word problem"],
      "title": ("Sözel problem: alışveriş hesabı", "Word problem: a shopping bill"),
-     "q": ("Ece tanesi 12 TL olan 3 defter ve tanesi 5 TL olan 2 kalem alıp kasaya 100 TL verdi. "
-           "Para üstü {pretty} işlemiyle bulunur. Kaç TL para üstü alır?",
-           "Ece buys 3 notebooks at 12 each and 2 pens at 5 each and pays with 100. Her change is "
-           "{pretty}. How much change does she get?"),
+     "q": ("Ece kırtasiyeden birkaç defter ve kalem alıp kasaya bir banknot veriyor. Alacağı para üstü "
+           "{pretty} işlemiyle bulunuyor (parantez içi: toplam tutar). Ece kaç TL para üstü alır?",
+           "Ece buys some notebooks and pens and pays with one banknote. Her change is given by "
+           "{pretty} (the brackets hold the total cost). How much change does she get?"),
      "P": {"expr": "100 - (3*12 + 2*5)"}},
     {"id": "fund-ops-3", "kind": "order_ops", "topics": ["negative numbers", "negatif sayılar"],
      "title": ("Negatif sayılar ve üsler", "Negative numbers and powers"),
-     "q": ("{pretty} ifadesinin değeri kaçtır? (−2² ile (−3)² farkına dikkat!)",
-           "What is the value of {pretty}? (Watch the difference between −2² and (−3)²!)"),
+     "q": ("{pretty} ifadesinin değeri kaçtır? (İpucu: −2² = −4, ama (−2)² = 4.)",
+           "What is the value of {pretty}? (Hint: −2² = −4, but (−2)² = 4.)"),
      "P": {"expr": "-2^2 + (-3)^2*2 - 12/(-4)"}},
 ]
 
@@ -2618,10 +2625,10 @@ def build(fig, P):
     fw, fh = fig.get_size_inches()
     pos = ax.get_position()
     aw, ah = pos.width * fw, pos.height * fh
-    s = min(0.56 * aw / wf, 0.66 * ah / hf)
+    s = min(0.5 * aw / wf, 0.66 * ah / hf)
     XW, YH = aw / s, ah / s
     nx, ny = int(math.ceil(wf - 1e-9)), int(math.ceil(hf - 1e-9))
-    x0 = 0.06 * XW + (0.56 * XW - wf) / 2.0
+    x0 = 0.07 * XW + (0.5 * XW - wf) / 2.0
     y0 = 0.1 * YH + (0.66 * YH - hf) / 2.0
     im = ax.imshow(np.ones((ny, nx, 4)), extent=(x0, x0 + nx, y0, y0 + ny), origin="lower",
                    interpolation="nearest", aspect="auto", zorder=1)
@@ -2652,7 +2659,7 @@ def build(fig, P):
     dot, = ax.plot([], [], "o", ms=11, color="#DC2626", zorder=7)
     cnt = ax.text(x0 + wf / 2, y0 + hf / 2, "", ha="center", va="center", fontsize=22, fontweight="bold",
                   color="#1E3A8A", zorder=8, bbox=dict(boxstyle="round", fc="white", ec="none", alpha=0.8))
-    fx = 0.66
+    fx = 0.68
     f1 = ax.text(fx, 0.62, (f"Alan = {_n(w)} × {_n(h)}\n= {_n(A)} {ua}" if tr else
                             f"Area = {_n(w, False)} × {_n(h, False)}\n= {_n(A, False)} {ua}"),
                  transform=ax.transAxes, fontsize=14, color="#2563EB", va="top", fontweight="bold")

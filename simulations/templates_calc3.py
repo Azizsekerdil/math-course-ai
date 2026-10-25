@@ -257,7 +257,7 @@ def _short(v, d=3):
     if not np.isfinite(fv):
         return "?"
     s = _pp(v)
-    if len(s) <= 8 and not v.has(sp.Float):
+    if len(s) <= 10 and not v.has(sp.Float):
         return s
     return _g(fv, d)
 
@@ -282,6 +282,18 @@ def _shown(e, xv=None, yv=None, tv=None):
     except Exception:
         return ""
     return s if len(s) <= 64 else ""
+
+
+_MEMO = {}
+
+
+def _cached(tag, P, fn):
+    key = (tag,) + tuple(sorted((str(k), repr(v)) for k, v in P.items() if k != "lang"))
+    if key not in _MEMO:
+        if len(_MEMO) > 48:
+            _MEMO.clear()
+        _MEMO[key] = fn(P)
+    return _MEMO[key]
 
 
 def _cut(s, n):
@@ -561,6 +573,10 @@ def _classify(f, xv, yv):
 
 
 def _analyse(P):
+    return _cached("analyse", P, _analyse0)
+
+
+def _analyse0(P):
     f = _parse(P["f"])
     box = _box(P)
     kind, pts, curves = _crit(f, box)
@@ -1091,7 +1107,7 @@ def _lin(z0, A, B, x0, y0):
     return _pp(z0) + term(A, "x", x0) + term(B, "y", y0)
 
 
-def solve(P):
+def _solve0(P):
     f, x0, y0, x1, y1, z0, fx, fy, A, B = _setup(P)
     pt = f"({_pp(x0)}, {_pp(y0)})"
     z0s, z0v = _eqv(z0)
@@ -1128,6 +1144,10 @@ def solve(P):
         ans = (f"P{pt} noktasında teğet düzlem yok (f_x veya f_y tanımsız)",
                f"No tangent plane at P{pt} (f_x or f_y undefined)")
     return {"answer": ans, "steps": steps, "fmt": {"fx": _pp(f), "pt": pt, "p1": p1}}
+
+
+def solve(P):
+    return _cached("solve", P, _solve0)
 
 
 def build(fig, P):
@@ -1674,7 +1694,7 @@ def _lim(v):
     return s if len(s) == 1 or (s.lstrip("-").isdigit()) else "(" + s + ")"
 
 
-def solve(P):
+def _solve0(P):
     f, a, b, c, d, order = _setup(P)
     h = _num(f, (_X, _Y))
     fa, fb, fc, fd = float(a), float(b), float(c), float(d)
@@ -1736,6 +1756,10 @@ def solve(P):
                       "Note: where f < 0 the contribution is negative (signed / net volume)."))
     return {"answer": f"V {Vs}", "steps": steps,
             "fmt": {"fx": _pp(f), "R": Rs, "V": Vs}}
+
+
+def solve(P):
+    return _cached("solve", P, _solve0)
 
 
 def build(fig, P):
@@ -2231,17 +2255,23 @@ def _iv(t0, t1):
     return f"[{_pp(t0)}, {_pp(t1)}]"
 
 
-def solve(P):
+def _solve0(P):
     r, t0, t1 = _setup(P)
     d, sq, spd = _speed(r)
     hs = _num(spd, (_T,))
     ts = np.linspace(float(t0), float(t1), 4001)
     vs = hs(ts)
+    defined = bool(np.all(np.isfinite(vs)))
     vs = np.where(np.isfinite(vs), vs, 0.0)
-    Lnum = float(np.sum((vs[1:] + vs[:-1]) / 2) * (ts[1] - ts[0]))
+    Lnum = float(np.sum((vs[1:] + vs[:-1]) / 2) * (ts[1] - ts[0])) if defined else float("nan")
     Lx = None
+    easy = defined and sp.count_ops(spd) <= 40
+    for q in sp.preorder_traversal(spd):
+        if isinstance(q, sp.Pow) and q.has(_T) and not q.exp.is_Integer:
+            if not (q.base.is_polynomial(_T) and sp.degree(q.base, _T) <= 2):
+                easy = False
     try:
-        if sp.count_ops(spd) <= 40:
+        if easy:
             Lx = sp.integrate(spd, (_T, t0, t1))
             if Lx.has(sp.Integral):
                 Lx = None
@@ -2251,7 +2281,7 @@ def solve(P):
                     Lx = None
     except Exception:
         Lx = None
-    Ls = _eqv(Lx)[0] if Lx is not None else "≈ " + _g(Lnum, 6)
+    Ls = _eqv(Lx)[0] if Lx is not None else ("≈ " + _g(Lnum, 6) if defined else "= ? (tanımsız / undefined)")
     rv = f"⟨{_pp(r[0])}, {_pp(r[1])}, {_pp(r[2])}⟩"
     dv = f"⟨{_pp(d[0])}, {_pp(d[1])}, {_pp(d[2])}⟩"
     sqs = " + ".join(f"({_pp(e)})²" for e in d)
@@ -2277,6 +2307,10 @@ def solve(P):
                   "Meaning: L is the area under the speed graph |r'(t)| (right-hand plot)."))
     return {"answer": f"L {Ls}", "steps": steps,
             "fmt": {"r": rv, "I": _iv(t0, t1), "L": Ls}}
+
+
+def solve(P):
+    return _cached("solve", P, _solve0)
 
 
 def build(fig, P):
@@ -2379,14 +2413,17 @@ def build(fig, P):
 
 def vary(P, rnd):
     form = rnd.choice(["helix", "cubic", "line"])
+    t = _T
     if form == "helix":
         a, b = rnd.choice([(3, 4), (4, 3), (1, 1), (5, 12), (2, 1)])
         k = rnd.choice([1, 2])
-        return {"x": f"{a}*cos(t)", "y": f"{a}*sin(t)", "z": f"{b}*t", "t0": 0, "t1": f"{k}*pi"}
+        return {"x": sp.sstr(a * sp.cos(t)), "y": sp.sstr(a * sp.sin(t)), "z": sp.sstr(b * t), "t0": 0,
+                "t1": sp.sstr(k * sp.pi)}
     if form == "cubic":
         return {"x": "t", "y": "t**2", "z": "2*t**3/3", "t0": 0, "t1": rnd.choice([1, 2, 3])}
     p, q, s = rnd.choice([(1, 2, 2), (2, 3, 6), (2, 6, 9), (4, 4, 7)])
-    return {"x": f"{p}*t + 1", "y": f"{q}*t", "z": f"{s}*t - 2", "t0": 0, "t1": rnd.choice([1, 2, 3])}
+    return {"x": sp.sstr(p * t + 1), "y": sp.sstr(q * t), "z": sp.sstr(s * t - 2), "t0": 0,
+            "t1": rnd.choice([1, 2, 3])}
 ''',
 }
 EXAMPLES += [
@@ -2433,7 +2470,7 @@ def _fstr(a, b):
     return _pp(a * _X + b * _Y)
 
 
-def solve(P):
+def _solve0(P):
     a, b, r = _setup(P)
     fs, r2 = _fstr(a, b), _pp(r ** 2)
     if a == 0 and b == 0:
@@ -2468,6 +2505,10 @@ def solve(P):
     ans = (f"{P1} noktasında maks f = {_short(fm)};  {P2} noktasında min f = {_short(-fm)}",
            f"max f = {_short(fm)} at {P1};  min f = {_short(-fm)} at {P2}")
     return {"answer": ans, "steps": steps, "fmt": {"fx": fs, "g": f"x² + y² = {r2}"}}
+
+
+def solve(P):
+    return _cached("solve", P, _solve0)
 
 
 def build(fig, P):

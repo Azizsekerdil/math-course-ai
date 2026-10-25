@@ -528,7 +528,14 @@ def vary(P, rnd):
         if (b * h) % 2 == 0:
             break
     out = dict(P)
-    out.update({"base": b, "height": h, "shift": rnd.randint(-2, b + 2)})
+    s0 = float(P.get("shift", 0))
+    if s0 > float(P["base"]):
+        sh = b + rnd.randint(1, 3)
+    elif s0 < 0:
+        sh = -rnd.randint(1, 3)
+    else:
+        sh = rnd.randint(1, b - 1)
+    out.update({"base": b, "height": h, "shift": sh})
     return out
 ''',
 }
@@ -973,11 +980,18 @@ def build(fig, P):
 
 
 def vary(P, rnd):
+    out = dict(P)
+    if float(P["B"]) == 90:
+        out["A"] = rnd.choice([v for v in range(20, 71, 5) if v != P["A"]])
+        return out
+    if P["A"] == P["B"]:
+        A = rnd.choice([v for v in (25, 28, 30, 35, 40, 50, 55, 62, 65, 70, 75) if v != P["A"]])
+        out.update({"A": A, "B": A})
+        return out
     while True:
         A = rnd.randrange(25, 100, 5)
         B = rnd.randrange(25, 100, 5)
-        if 25 <= 180 - A - B <= 120:
-            out = dict(P)
+        if 25 <= 180 - A - B <= 120 and B != 90:
             out.update({"A": A, "B": B})
             return out
 ''',
@@ -1092,6 +1106,17 @@ def solve(P):
         (f"Kontrol: iç açı + dış açı = {_short(each)} + {_short(ext)} = 180° ✓",
          f"Check: interior + exterior = {_short(each)} + {_short(ext)} = 180° ✓"),
     ]
+    fit = Fraction(360) / each
+    if fit.denominator == 1:
+        steps.append((f"Döşeme: 360° / {_short(each)} = {fit.numerator} ⇒ bir köşede {fit.numerator} tane "
+                      f"{nm[0]} boşluksuz birleşir.",
+                      f"Tiling: 360° / {_short(each)} = {fit.numerator} ⇒ {fit.numerator} {nm[1]}s meet at a "
+                      "corner with no gap."))
+    else:
+        steps.append((f"Döşeme: 360° / {_short(each)} ≈ {float(fit):.2f} tam sayı değil ⇒ tek başına "
+                      "boşluksuz döşenemez.",
+                      f"Tiling: 360° / {_short(each)} ≈ {float(fit):.2f} is not a whole number ⇒ it cannot "
+                      "tile a floor on its own."))
     ans = (f"Toplam {S}°, her iç açı {_deg(each)}, her dış açı {_deg(ext)}",
            f"Sum {S}°, each interior angle {_deg(each)}, each exterior angle {_deg(ext)}")
     return {"answer": ans, "steps": steps, "fmt": {"name": nm, "S": str(S)}}
@@ -1240,17 +1265,17 @@ EXAMPLES += [
      "P": {"n": 5}},
     {"id": "geo-poly-2", "kind": "polygon_angles", "topics": ["stop sign", "word problem", "sözel problem"],
      "title": ("Dur levhası (sekizgen)", "Stop sign (octagon)"),
-     "q": ("Bir dur levhası düzgün {name} biçimindedir. Köşelerindeki iç açılar kaçar derecedir? "
+     "q": ("Bir trafik levhası düzgün {name} biçimindedir. Köşelerindeki iç açılar kaçar derecedir? "
            "Tüm iç açıların toplamı nedir?",
-           "A stop sign is a regular {name}. How large is each corner (interior) angle, and what is "
-           "the sum of all interior angles?"),
+           "A road sign has the shape of a regular {name}. How large is each corner (interior) angle, "
+           "and what is the sum of all interior angles?"),
      "P": {"n": 8}},
     {"id": "geo-poly-3", "kind": "polygon_angles", "topics": ["tessellation", "tiling", "döşeme"],
      "title": ("Altıgen fayanslar", "Hexagonal tiles"),
-     "q": ("Bal peteği gibi döşenen fayanslar düzgün {name} biçiminde. Bir iç açı kaç derecedir ve "
-           "bir köşede üç fayans neden boşluksuz birleşir?",
-           "Floor tiles laid like a honeycomb are regular {name}s. How big is each interior angle, and why "
-           "do three tiles meet at a corner without gaps?"),
+     "q": ("Bir zemin düzgün {name} biçimli fayanslarla döşenecek. Bir iç açı kaç derecedir? "
+           "Bir köşede fayanslar boşluksuz birleşebilir mi?",
+           "A floor is to be covered with tiles shaped like a regular {name}. How big is each interior "
+           "angle? Can the tiles meet at a corner without gaps?"),
      "P": {"n": 6}},
 ]
 
@@ -1622,7 +1647,12 @@ def vary(P, rnd):
                     "k": rnd.randint(4, 9)})
         out.pop("c", None)
         return out
-    a, b, c = rnd.choice([(3, 4, 5), (4, 5, 6), (5, 6, 7), (6, 7, 8), (5, 5, 6), (4, 6, 7), (7, 8, 9), (6, 8, 10)])
+    a0, b0, c0 = float(P["a"]), float(P["b"]), float(P["c"])
+    if abs(a0 * a0 + b0 * b0 - c0 * c0) < 1e-9:
+        pool = [(3, 4, 5), (6, 8, 10), (5, 12, 13), (8, 15, 17), (9, 12, 15)]
+    else:
+        pool = [(4, 5, 6), (5, 6, 7), (6, 7, 8), (5, 5, 6), (4, 6, 7), (7, 8, 9), (3, 5, 7)]
+    a, b, c = rnd.choice(pool)
     out.update({"a": a, "b": b, "c": c, "k": rnd.choice([1.5, 2, 2.5, 3, 0.5])})
     return out
 ''',
@@ -2051,8 +2081,8 @@ def vary(P, rnd):
         pts = [[rnd.choice(rng), rnd.choice(rng)] for _ in range(max(3, min(4, k)))]
         if len(pts) == 4:
             x0, y0 = rnd.choice(rng), rnd.choice(rng)
-            w, h = rnd.choice([2, 3, 4] if not even else [2, 4]), rnd.choice([2, 3] if not even else [2, 4])
-            pts = [[x0, y0], [x0 + w, y0], [x0 + w, y0 + h], [x0, y0 + h]]
+            w = rnd.choice([2, 3] if not even else [2, 4])
+            pts = [[x0, y0], [x0 + w, y0], [x0 + w, y0 + w], [x0, y0 + w]]
         (x1, y1), (x2, y2), (x3, y3) = pts[0], pts[1], pts[2]
         if (x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1) != 0:
             break
@@ -2063,10 +2093,8 @@ def vary(P, rnd):
             if dx != 0 and dy != 0:
                 break
         out.update({"dx": dx, "dy": dy})
-    elif t == "rotate":
-        out.update({"angle": rnd.choice([90, 180, 270, -90]), "cx": 0, "cy": 0})
-    elif t == "reflect":
-        out["axis"] = rnd.choice(["x", "y", "y=x", "y=-x"])
+    elif t in ("rotate", "reflect"):
+        pass
     else:
         out.update({"k": 0.5 if even else rnd.choice([2, 2, 3]), "cx": 0, "cy": 0})
     return out
@@ -2075,15 +2103,13 @@ def vary(P, rnd):
 EXAMPLES += [
     {"id": "geo-trans-1", "kind": "transform_shape", "topics": ["rotation", "döndürme"],
      "title": ("Orijin etrafında 90° döndürme", "Rotating 90° about the origin"),
-     "q": ("{shape} üçgenini orijin etrafında saat yönünün tersine 90° döndür. Görüntünün köşe "
-           "koordinatları nelerdir?",
-           "Rotate the triangle {shape} 90° counterclockwise about the origin. What are the "
-           "coordinates of the image?"),
+     "q": ("{shape} üçgenine {desc} uygula. Görüntünün köşe koordinatları nelerdir?",
+           "Apply a {desc} to the triangle {shape}. What are the coordinates of the image?"),
      "P": {"type": "rotate", "pts": [[1, 1], [4, 1], [1, 3]], "angle": 90, "cx": 0, "cy": 0}},
     {"id": "geo-trans-2", "kind": "transform_shape", "topics": ["reflection", "yansıma", "symmetry"],
      "title": ("y = x doğrusuna göre yansıma", "Reflecting across y = x"),
-     "q": ("{shape} üçgeninin y = x doğrusuna göre yansımasını çiz ve köşe koordinatlarını yaz.",
-           "Reflect the triangle {shape} across the line y = x and give the image coordinates."),
+     "q": ("{shape} üçgeninin {desc}sını çiz ve görüntünün köşe koordinatlarını yaz.",
+           "Draw the {desc} of the triangle {shape} and give the image coordinates."),
      "P": {"type": "reflect", "pts": [[1, -3], [4, -2], [2, 0]], "axis": "y=x"}},
     {"id": "geo-trans-3", "kind": "transform_shape",
      "topics": ["translation", "öteleme", "word problem", "sözel problem"],
@@ -2563,10 +2589,10 @@ EXAMPLES += [
      "P": {"r": 6, "theta": 120}},
     {"id": "geo-arc-2", "kind": "arc_sector", "topics": ["pizza", "word problem", "sözel problem"],
      "title": ("Pizza dilimi", "A slice of pizza"),
-     "q": ("Çapı {d} cm olan bir pizza 8 eşit dilime bölünüyor; her dilimin merkez açısı {theta}°. "
-           "Bir dilimin kenar (kabuk) uzunluğu ve alanı nedir?",
-           "A pizza {d} cm across is cut into 8 equal slices, each with a central angle of {theta}°. "
-           "How long is one slice's crust and what is its area?"),
+     "q": ("Çapı {d} cm olan bir pizzadan merkez açısı {theta}° olan bir dilim kesiliyor. "
+           "Dilimin kenar (kabuk) uzunluğu ve alanı nedir?",
+           "A slice with a central angle of {theta}° is cut from a pizza {d} cm across. "
+           "How long is the slice's crust and what is its area?"),
      "P": {"r": 15, "theta": 45, "unit": "cm"}},
     {"id": "geo-arc-3", "kind": "arc_sector", "topics": ["sprinkler", "word problem"],
      "title": ("Döner fıskiye", "Rotating sprinkler"),
@@ -3242,7 +3268,9 @@ def build(fig, P):
 
 def vary(P, rnd):
     out = dict(P)
-    out["deg"] = rnd.choice([v for v in (30, 45, 60, 120, 135, 150, 210, 225, 240, 300, 315, 330) if v != P.get("deg")])
+    q = int((float(P["deg"]) % 360) // 90)
+    pool = [v + 90 * q for v in (30, 45, 60) if v + 90 * q != float(P["deg"]) % 360]
+    out["deg"] = rnd.choice(pool)
     return out
 ''',
 }
@@ -3712,8 +3740,10 @@ def solve(P):
             tr_parts.append(f"θ ≈ {pl['th']:.2f}°")
             en_parts.append(f"θ ≈ {pl['th']:.2f}°")
         else:
-            e = "=" if u.get("ex") else "≈"
-            val = _n(_val(pl, t)) if u.get("ex") else f"{_val(pl, t):.2f}"
+            vv = _val(pl, t)
+            ex = u.get("ex") or abs(vv - round(vv)) < 1e-9
+            e = "=" if ex else "≈"
+            val = _n(vv) if ex else f"{vv:.2f}"
             nm = _name(t, scene)
             tr_parts.append(f"{nm[0]} {e} {val}{us}")
             en_parts.append(f"{nm[1]} {e} {val}{us}")
@@ -3831,7 +3861,8 @@ def build(fig, P):
             return f"{nm} = ?"
         u = U[unk[k]]
         if g >= 1:
-            return f"{nm} {'=' if u.get('ex') else '≈'} {_n(v) if u.get('ex') else f'{v:.2f}'}"
+            ex = u.get("ex") or abs(v - round(v)) < 1e-9
+            return f"{nm} {'=' if ex else '≈'} {_n(v) if ex else f'{v:.2f}'}"
         return f"{nm} ≈ {v * g:.2f}"
 
     kn = ", ".join((f"θ = {_n(P['angle'])}°" if k == "angle" else f"{_GEN[k][L]} = {_n(P[k])}") for k in pl["known"])

@@ -1813,7 +1813,7 @@ def build(fig, P):
     axL.text(-0.98, -0.07 * A, "denge" if tr else "equilibrium", fontsize=8, color="#6B7280", va="top")
     hb = 0.17 * A
     damper = float(P["c"]) > 0
-    mx0, mw = (-0.66, 0.8) if damper else (-0.45, 0.9)
+    mx0, mw = (-0.58, 0.74) if damper else (-0.45, 0.9)
     xsp = mx0 + mw / 2
     xd = 0.42
     spr, = axL.plot([], [], color="#374151", lw=1.6, zorder=3)
@@ -2332,9 +2332,14 @@ def _run(P):
     return R
 
 
+def _cv(v, var):
+    s = _n(v, 4)
+    return var if s == "1" else s + var
+
+
 def _sys(R):
-    a, b, c, d = (_n(R[k], 4) for k in ("a", "b", "c", "d"))
-    return f"x' = {a}x − {b}xy,   y' = −{c}y + {d}xy"
+    return (f"x' = {_cv(R['a'], 'x')} − {_cv(R['b'], 'xy')},   "
+            f"y' = −{_cv(R['c'], 'y')} + {_cv(R['d'], 'xy')}")
 
 
 def solve(P):
@@ -2378,22 +2383,25 @@ def build(fig, P):
     a, b, c, d = R["a"], R["b"], R["c"], R["d"]
     t, X, Y = R["t"], R["X"], R["Y"]
     xs_, ys_ = R["xs"], R["ys"]
-    gs = fig.add_gridspec(1, 2, width_ratios=[1, 1.25], left=0.08, right=0.98, bottom=0.12, top=0.9,
+    x1, x2, y1, y2 = R["rng"]
+    gs = fig.add_gridspec(1, 2, width_ratios=[1, 1.25], left=0.08, right=0.98, bottom=0.11, top=0.8,
                           wspace=0.22)
     ax = fig.add_subplot(gs[0, 0])
     at = fig.add_subplot(gs[0, 1])
-    XM, YM = 1.12 * max(X.max(), xs_), 1.18 * max(Y.max(), ys_)
-    ax.set_xlim(0, XM)
-    ax.set_ylim(0, YM)
+    dxr, dyr = max(x2 - x1, 1e-6), max(y2 - y1, 1e-6)
+    XL0, XL1 = max(0.0, x1 - 0.3 * dxr), x2 + 0.22 * dxr
+    YL0, YL1 = max(0.0, y1 - 0.3 * dyr), y2 + 0.3 * dyr
+    ax.set_xlim(XL0, XL1)
+    ax.set_ylim(YL0, YL1)
     ax.grid(alpha=0.25)
     ax.set_xlabel("x (av)" if tr else "x (prey)")
     ax.set_ylabel("y (avcı)" if tr else "y (predators)")
     ax.set_title("Faz düzlemi" if tr else "Phase plane", fontsize=11)
     fw, fh = fig.get_size_inches()
     pos = ax.get_position()
-    sx, sy = pos.width * fw / XM, pos.height * fh / YM
-    gx = (np.arange(13) + 0.5) * XM / 13
-    gy = (np.arange(11) + 0.5) * YM / 11
+    sx, sy = pos.width * fw / (XL1 - XL0), pos.height * fh / (YL1 - YL0)
+    gx = XL0 + (np.arange(13) + 0.5) * (XL1 - XL0) / 13
+    gy = YL0 + (np.arange(11) + 0.5) * (YL1 - YL0) / 11
     GX, GY = np.meshgrid(gx, gy)
     U, V = a * GX - b * GX * GY, -c * GY + d * GX * GY
     nrm = np.hypot(U * sx, V * sy) + 1e-12
@@ -2402,17 +2410,18 @@ def build(fig, P):
               scale_units="xy", scale=1, width=0.004, headwidth=4, zorder=1)
     ax.axvline(xs_, color="#7C3AED", ls="--", lw=1.1)
     ax.axhline(ys_, color="#E07B39", ls="--", lw=1.1)
-    ax.text(xs_, YM * 0.98, " y' = 0", color="#7C3AED", fontsize=8.5, va="top")
-    ax.text(XM * 0.98, ys_, "x' = 0", color="#E07B39", fontsize=8.5, va="bottom", ha="right")
+    ax.text(xs_, YL1 - 0.01 * (YL1 - YL0), " y' = 0", color="#7C3AED", fontsize=8.5, va="top")
+    ax.text(XL1 - 0.01 * (XL1 - XL0), ys_, "x' = 0", color="#E07B39", fontsize=8.5, va="bottom", ha="right")
     ax.plot([xs_], [ys_], "o", color="#16A34A", ms=9, zorder=6)
-    ax.text(xs_, ys_ - 0.04 * YM, f"({_n(xs_)}, {_n(ys_)})", color="#16A34A", fontsize=9, ha="center",
-            va="top", fontweight="bold")
+    ax.text(xs_, ys_ - 0.04 * (YL1 - YL0), f"({_n(xs_)}, {_n(ys_)})", color="#16A34A", fontsize=9,
+            ha="center", va="top", fontweight="bold", zorder=6,
+            bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.8))
     orb, = ax.plot([], [], color="#2563EB", lw=2.2, zorder=4)
     od, = ax.plot([], [], "o", color="#DC2626", ms=8, zorder=7)
     ax.plot([R["x0"]], [R["y0"]], "s", color="#DC2626", ms=6, zorder=6)
     te = t[-1]
     at.set_xlim(0, te)
-    top = 1.22 * max(X.max(), Y.max())
+    top = 1.3 * max(X.max(), Y.max())
     at.set_ylim(0, top)
     at.grid(alpha=0.25)
     at.set_xlabel("t")
@@ -2424,20 +2433,21 @@ def build(fig, P):
     vt, = at.plot([], [], color="#9CA3AF", lw=1)
     dx_, = at.plot([], [], "o", color="#2563EB", ms=6)
     dy_, = at.plot([], [], "o", color="#E07B39", ms=6)
-    at.legend(loc="upper right", fontsize=9)
+    at.legend(loc="upper right", fontsize=9, ncol=2)
     T = R["T"]
-    arr = at.annotate("", xy=(T if T else te, top * 0.9), xytext=(0, top * 0.9),
+    ya = 1.1 * X.max()
+    arr = at.annotate("", xy=(T if T else te, ya), xytext=(0, ya),
                       arrowprops=dict(arrowstyle="<->", color="#7C3AED", lw=1.6))
-    arrt = at.text((T if T else te) / 2, top * 0.92, f"T ≈ {_n(T)}" if T else "", ha="center", va="bottom",
-                   color="#7C3AED", fontsize=11, fontweight="bold")
-    info = _box(ax, size=10)
-    x1, x2, y1, y2 = R["rng"]
-    l1 = (f"1) Denge: x* = c/d = {_n(xs_)},  y* = a/b = {_n(ys_)}" if tr else
-          f"1) Equilibrium: x* = c/d = {_n(xs_)},  y* = a/b = {_n(ys_)}")
-    l2 = ("2) Yörünge dengenin etrafında kapalı bir eğri" if tr else "2) The orbit is a closed curve around it")
+    arrt = at.text((T if T else te) / 2, ya + 0.01 * top, f"T ≈ {_n(T)}" if T else "", ha="center",
+                   va="bottom", color="#7C3AED", fontsize=11, fontweight="bold")
+    info = _banner(fig)
+    l1 = (f"1) Denge: x* = c/d = {_n(xs_)}, y* = a/b = {_n(ys_)}  (kesikli: x' = 0, y' = 0)" if tr else
+          f"1) Equilibrium: x* = c/d = {_n(xs_)}, y* = a/b = {_n(ys_)}  (dashed: x' = 0, y' = 0)")
+    l2 = ("2) Yörünge dengenin etrafında kapalı bir eğri: önce av, sonra avcı artar" if tr else
+          "2) A closed orbit around the equilibrium: prey rise first, then predators")
     l3 = (f"3) Periyot T ≈ {_n(T)}" if tr else f"3) Period T ≈ {_n(T)}") if T else "3)"
-    l3b = (f"av: {_n(x1, 1)}–{_n(x2, 1)},  avcı: {_n(y1, 1)}–{_n(y2, 1)}" if tr else
-           f"prey: {_n(x1, 1)}–{_n(x2, 1)},  predators: {_n(y1, 1)}–{_n(y2, 1)}")
+    l3b = (f"av: {_n(x1, 1)} – {_n(x2, 1)},   avcı: {_n(y1, 1)} – {_n(y2, 1)}" if tr else
+           f"prey: {_n(x1, 1)} – {_n(x2, 1)},   predators: {_n(y1, 1)} – {_n(y2, 1)}")
     N = 170
 
     def update(i):
@@ -2456,7 +2466,7 @@ def build(fig, P):
         if i < 18:
             info.set_text(l1)
         elif i < 150:
-            info.set_text(l1 + "\n" + l2)
+            info.set_text(l1 + "\n" + l2 + f"\nt = {t[m - 1]:.2f}:   x = {X[m - 1]:.1f},   y = {Y[m - 1]:.1f}")
         else:
             info.set_text(l3 + "\n" + l3b)
         return []
@@ -2556,18 +2566,21 @@ def solve(P):
     rin = r * cin
     A1 = float(_A(V, cin, r, A0, t1))
     ex = _expo(r, V)
+    AA = _affine(Ae, A0 - Ae, "e^(" + ex + ")")
+    AA1 = _affine(Ae, A0 - Ae, "e^(−" + _n(t1 / tau, 4) + ")")
+    rhs = f"{_n(rin, 4)} − {_out(r, V)}" if rin > 0 else f"−{_out(r, V)}"
     steps = [(f"Giren tuz hızı = r·c_giriş = {sr}·{sc} = {_n(rin, 4)} g/dk",
               f"Salt in = r·c_in = {sr}·{sc} = {_n(rin, 4)} g/min"),
              (f"Çıkan tuz hızı = r·(A/V) = {sr}·A/{sV} = {_out(r, V)} g/dk (karışım homojen)",
               f"Salt out = r·(A/V) = {sr}·A/{sV} = {_out(r, V)} g/min (well mixed)"),
-             (f"dA/dt = {_n(rin, 4)} − {_out(r, V)},  A(0) = {sA0}", f"dA/dt = {_n(rin, 4)} − {_out(r, V)},  A(0) = {sA0}"),
+             (f"dA/dt = {rhs},  A(0) = {sA0}", f"dA/dt = {rhs},  A(0) = {sA0}"),
              (f"Doğrusal 1. mertebe: integral çarpanı e^(t/{_n(tau, 4)}) ⇒ "
-              f"A(t) = {_n(Ae)} + ({_n(A0 - Ae)})·e^({ex})",
+              f"A(t) = {AA}",
               f"Linear first order: integrating factor e^(t/{_n(tau, 4)}) ⇒ "
-              f"A(t) = {_n(Ae)} + ({_n(A0 - Ae)})·e^({ex})"),
-             (f"A({s1}) = {_n(Ae)} + ({_n(A0 - Ae)})·e^(−{_n(t1 / tau, 4)}) ≈ {_n(A1)} g  "
+              f"A(t) = {AA}"),
+             (f"A({s1}) = {AA1} ≈ {_n(A1)} g  "
               f"(derişim {_n(A1 / V, 4)} g/L)",
-              f"A({s1}) = {_n(Ae)} + ({_n(A0 - Ae)})·e^(−{_n(t1 / tau, 4)}) ≈ {_n(A1)} g  "
+              f"A({s1}) = {AA1} ≈ {_n(A1)} g  "
               f"(concentration {_n(A1 / V, 4)} g/L)")]
     a_tr = f"A({s1}) ≈ {_n(A1)} g"
     a_en = a_tr
@@ -2612,7 +2625,7 @@ def build(fig, P):
     salt = np.column_stack([2.3 + 5.4 * rng.random(M), 1.9 + 5.4 * rng.random(M)])
     sc = axL.scatter(np.zeros(0), np.zeros(0), s=10, color="#E07B39", zorder=2)
     amax = max(A0, Ae, 1e-9)
-    drops = axL.scatter(np.zeros(0), np.zeros(0), s=26, zorder=2,
+    drops = axL.scatter(np.zeros(0), np.zeros(0), s=42, zorder=2,
                         color=_mix("#DBEAFE", "#1D4ED8", 0.12 + 0.8 * cin / cref), edgecolors="#1E3A8A",
                         linewidths=0.5)
     outp = axL.scatter(np.zeros(0), np.zeros(0), s=18, zorder=4, color="#1D4ED8")
@@ -2630,7 +2643,8 @@ def build(fig, P):
     ax.grid(alpha=0.3)
     ax.set_xlabel(f"t ({unit})")
     ax.set_ylabel("A(t) (g)")
-    ax.set_title(f"A(t) = {_n(Ae)} + ({_n(A0 - Ae)})·e^({_expo(r, V)})", fontsize=11)
+    AA = _affine(Ae, A0 - Ae, "e^(" + _expo(r, V) + ")")
+    ax.set_title(f"A(t) = {AA}", fontsize=11)
     if Ae > 0:
         ax.axhline(Ae, color="#DC2626", ls="--", lw=1.3)
         ax.text(tmax * 0.98, Ae + top * 0.015, f"V·c = {_n(Ae)} g", ha="right", va="bottom", color="#DC2626",
@@ -2641,13 +2655,16 @@ def build(fig, P):
     up = A1 >= A0
     m1, = ax.plot([], [], "o", color="#7C3AED", ms=10, zorder=7)
     m1l, = ax.plot([], [], ":", color="#7C3AED", lw=1.3)
-    m1t = ax.text(0, 0, "", color="#7C3AED", fontsize=11, fontweight="bold", ha="left")
+    lab_left = up and t1 > 0.3 * tmax
+    m1t = ax.text(0, 0, "", color="#7C3AED", fontsize=11, fontweight="bold", ha="right" if lab_left else "left",
+                  va="top" if (up and not lab_left) else "bottom")
     m2, = ax.plot([], [], "s", color="#16A34A", ms=9, zorder=7)
     m2l, = ax.plot([], [], ":", color="#16A34A", lw=1.3)
-    m2t = ax.text(0, 0, "", color="#16A34A", fontsize=11, fontweight="bold", ha="left")
+    m2t = ax.text(0, 0, "", color="#16A34A", fontsize=11, fontweight="bold", ha="right",
+                  va="bottom" if up else "top")
     info = _box(ax)
-    l1 = f"1) dA/dt = {_n(r * cin, 4)} − {_out(r, V)}" + ("  (giren − çıkan)" if tr else "  (in − out)")
-    l2 = f"2) A(t) = {_n(Ae)} + ({_n(A0 - Ae)})·e^({_expo(r, V)})"
+    l1 = ("1) dA/dt = " + (f"{_n(r * cin, 4)} − {_out(r, V)}" if cin > 0 else f"−{_out(r, V)}")) + ("  (giren − çıkan)" if tr else "  (in − out)")
+    l2 = f"2) A(t) = {AA}"
     l3 = f"3) A({_n(t1)}) ≈ {_n(A1)} g"
     if At is not None:
         l3 += f";  A = {_n(At)} ⇒ t ≈ {_n(ts)} {unit}"
@@ -2675,7 +2692,8 @@ def build(fig, P):
         if tc >= t1 - 1e-9:
             m1.set_data([t1], [A1])
             m1l.set_data([t1, t1], [0, A1])
-            m1t.set_position((t1 + tmax * 0.015, A1 + top * (0.03 if up else 0.03)))
+            m1t.set_position((t1 + (-0.015 if lab_left else 0.015) * tmax,
+                              A1 + top * (-0.03 if (up and not lab_left) else 0.03)))
             m1t.set_text(f"A({_n(t1)}) ≈ {_n(A1, 1)}")
         else:
             m1.set_data([], [])
@@ -2684,7 +2702,7 @@ def build(fig, P):
         if At is not None and tc >= ts - 1e-9:
             m2.set_data([ts], [At])
             m2l.set_data([ts, ts], [0, At])
-            m2t.set_position((ts + tmax * 0.015, At - top * 0.07))
+            m2t.set_position((ts - tmax * 0.015, At + top * (0.03 if up else -0.03)))
             m2t.set_text(f"t ≈ {_n(ts, 1)} {unit}")
         else:
             m2.set_data([], [])
@@ -2806,7 +2824,7 @@ def build(fig, P):
     tt = np.linspace(0, te, 500)
     yy = S["lam"](tt)
     b1, b2 = S["blam"][0](tt), S["blam"][1](tt)
-    gs = fig.add_gridspec(1, 2, width_ratios=[1, 1.5], left=0.06, right=0.98, bottom=0.12, top=0.88,
+    gs = fig.add_gridspec(1, 2, width_ratios=[1, 1.5], left=0.06, right=0.98, bottom=0.11, top=0.8,
                           wspace=0.2)
     axL = fig.add_subplot(gs[0, 0])
     ax = fig.add_subplot(gs[0, 1])
@@ -2845,7 +2863,7 @@ def build(fig, P):
         lo, hi = lo - 1, hi + 1
     span = hi - lo
     ax.set_xlim(0, te)
-    ax.set_ylim(lo - 0.1 * span, hi + 0.5 * span)
+    ax.set_ylim(lo - 0.1 * span, hi + 0.15 * span)
     ax.grid(alpha=0.3)
     ax.axhline(0, color="#6B7280", lw=1)
     ax.set_xlabel("t")
@@ -2859,15 +2877,16 @@ def build(fig, P):
     dot, = ax.plot([], [], "o", color="#2563EB", ms=8, zorder=6)
     ic, = ax.plot([], [], "o", color="#DC2626", ms=10, zorder=7)
     tan, = ax.plot([], [], color="#DC2626", lw=3, zorder=7, solid_capstyle="round")
-    ax.legend(handles=[bl1, bl2, curve], loc="upper right", fontsize=8.5)
+    grows = max(z.real for z in rv) > 1e-9
+    ax.legend(handles=[bl1, bl2, curve], loc="upper left" if grows else "upper right", fontsize=8.5)
     y0f, v0f = float(S["y0"]), float(S["v0"])
     fw, fh = fig.get_size_inches()
     pos = ax.get_position()
-    ratio = (pos.height * fh / (1.6 * span)) / (pos.width * fw / te)
+    ratio = (pos.height * fh / (1.25 * span)) / (pos.width * fw / te)
     angt = math.atan(v0f * ratio)
     Lt = 0.09 * te
     tdx, tdy = Lt * math.cos(angt), Lt * math.sin(angt) / ratio
-    info = _box(ax, size=10)
+    info = _banner(fig)
     l1 = f"1) {char}  ⇒  {S['rshort']}"
     l2 = (f"2) y₁ = {S['btxt'][0]},  y₂ = {S['btxt'][1]}" if tr else f"2) y₁ = {S['btxt'][0]},  y₂ = {S['btxt'][1]}")
     l3 = (f"3) {ics}  ⇒  C₁ = {_ps(S['C1'])},  C₂ = {_ps(S['C2'])}")

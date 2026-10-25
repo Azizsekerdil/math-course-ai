@@ -520,6 +520,21 @@ def _simpson(h, a, b, n=2000):
     return float((b - a) / (3 * n) * np.dot(w, ys))
 
 
+def _jump(h, u, w, scale):
+    # True when f has a genuine jump inside [u, w] (not just a steep continuous piece)
+    fu, fw = _h1(h, u), _h1(h, w)
+    for _ in range(48):
+        m = 0.5 * (u + w)
+        fm = _h1(h, m)
+        if fm != fm:
+            return True
+        if abs(fm - fu) >= abs(fw - fm):
+            w, fw = m, fm
+        else:
+            u, fu = m, fm
+    return abs(fw - fu) > 1e-4 * (1 + scale)
+
+
 def _quad(h, a, b, n=4000):
     # Simpson's rule split at jump discontinuities (floor, piecewise, |x|/x ...)
     if a == b:
@@ -785,7 +800,7 @@ def _analyze(P):
     fa = None
     if not inf:
         try:
-            v = f.subs(x, a)
+            v = _realize(f).subs(x, a)
             if _finite(v) and not v.free_symbols:
                 fa = _simp(v)
         except Exception:
@@ -1528,7 +1543,7 @@ def _analyze(P):
     x0f = A["x0f"]
     y0 = None
     try:
-        v = f.subs(x, x0)
+        v = _realize(f).subs(x, x0)
         if _finite(v):
             y0 = _simp(v)
     except Exception:
@@ -1548,10 +1563,10 @@ def _analyze(P):
     m = None
     if smooth and ds is not None:
         try:
-            v = ds.subs(x, x0)
+            v = _realize(ds).subs(x, x0)
             if _finite(v):
                 m = _simp(v)
-            elif abs(dl) > 1e6:
+            else:
                 smooth = False
         except Exception:
             m = None
@@ -1905,7 +1920,7 @@ def _antider(f, x):
 
 def _Fat(F, x, v, side):
     try:
-        r = F.subs(x, v)
+        r = _realize(F).subs(x, v)
         if _finite(r):
             return r
     except Exception:
@@ -2357,7 +2372,7 @@ def _roots_in(e, x, a, b, eh):
     out = []
     ok = False
     try:
-        if e is not None and not e.is_zero:
+        if e is not None and not e.is_zero and (_realize(e) == e or _fl(a) >= 0):
             sol = sp.solveset(sp.Eq(e, 0), x, sp.Interval.open(a, b))
             if isinstance(sol, sp.FiniteSet):
                 out = [(_simp(c), _fl(c)) for c in sol if _finite(c)]
@@ -2478,7 +2493,7 @@ def _analyze(P):
         v2 = None
         if d2 is not None:
             try:
-                vv = d2.subs(x, c if c is not None else z)
+                vv = _realize(d2).subs(x, c if c is not None else z)
                 if _finite(vv):
                     v2 = _simp(vv) if c is not None else sp.Float(_fl(vv), 6)
             except Exception:
@@ -2497,7 +2512,7 @@ def _analyze(P):
         val = None
         if c is not None:
             try:
-                vv = f.subs(x, c)
+                vv = _realize(f).subs(x, c)
                 if _finite(vv):
                     val = _simp(vv)
             except Exception:
@@ -2755,15 +2770,23 @@ def vary(P, rnd):
         k = rnd.choice([1, 2, 3])
         c = rnd.choice([2, 3, 4])
         return {"f": f"{c}*{vn}*exp(-{vn}/{k})" if k != 1 else f"{c}*{vn}*exp(-{vn})", "a": 0, "b": 4 * k}
+    pos = float(_fl(_sval(P.get("a", -1)))) >= 0
     while True:
-        p = rnd.randint(-3, 2)
-        q = p + rnd.choice([2, 4])
-        k = rnd.choice([1, -1, 2])
+        if pos:
+            # profit-like shape: local min at p, positive local max at q (q > 3p), small fixed cost
+            p = rnd.choice([1, 2])
+            q = p + (rnd.choice([4, 6]) if p == 1 else 6)
+            k = rnd.choice([-1, -2])
+            c0 = -rnd.randint(2, 8)
+        else:
+            p = rnd.randint(-3, 2)
+            q = p + rnd.choice([2, 4])
+            k = rnd.choice([1, -1, 2])
+            c0 = rnd.randint(-6, 6)
         # f' = 3k(x - p)(x - q)  ->  f = k(x^3 - 3/2 (p+q) x^2 + 3pq x) + c
-        c0 = rnd.randint(-6, 6)
         poly = sp.expand(k * (z ** 3 - sp.Rational(3, 2) * (p + q) * z ** 2 + 3 * p * q * z) + c0)
         if all(t.is_Integer for t in sp.Poly(poly, z).all_coeffs()):
-            a = p - rnd.choice([1, 2])
+            a = 0 if pos else p - rnd.choice([1, 2])
             b = q + rnd.choice([1, 2])
             return {"f": sp.sstr(poly), "a": a, "b": b}
 '''),
@@ -4024,7 +4047,8 @@ def _analyze(P):
     af, bf = A["af"], A["bf"]
     fa, fb = None, None
     try:
-        fa, fb = _simp(f.subs(x, a)), _simp(f.subs(x, b))
+        fr_ = _realize(f)
+        fa, fb = _simp(fr_.subs(x, a)), _simp(fr_.subs(x, b))
         if not (_finite(fa) and _finite(fb)):
             fa = fb = None
     except Exception:
@@ -4060,8 +4084,11 @@ def _analyze(P):
     if cont:
         dyy = np.abs(np.diff(ys))
         med = float(np.median(dyy)) + 1e-12
-        if np.any(dyy > 60 * med + 1e-6 * (1 + float(np.nanmax(np.abs(ys))))):
-            cont = False
+        sc = float(np.nanmax(np.abs(ys)))
+        for k in np.nonzero(dyy > 60 * med + 1e-6 * (1 + sc))[0][:20]:
+            if _jump(h, xs[k], xs[k + 1], sc):
+                cont = False
+                break
     ds = dh(xs[1:-1])
     diffb = cont and bool(np.all(np.isfinite(ds)))
     if diffb:
@@ -4078,7 +4105,7 @@ def _analyze(P):
     cs = []
     if m is not None:
         try:
-            if d is not None:
+            if d is not None and (_realize(d) == d or af >= 0):
                 sol = sp.solveset(sp.Eq(d, m), x, sp.Interval.open(a, b))
                 if isinstance(sol, sp.FiniteSet):
                     cs = [(_simp(c), _fl(c)) for c in sol if _finite(c)]
@@ -4125,8 +4152,9 @@ def solve(P):
                 "steps": st, "fmt": fmt}
     fa, fb, m = A["fa"], A["fb"], A["m"]
     st.append((f"f({sa}) = {_ex(fa)},  f({sb}) = {_ex(fb)}", f"f({sa}) = {_ex(fa)},  f({sb}) = {_ex(fb)}"))
-    st.append((f"Kesen eğimi (ortalama değişim): m = [f({sb}) − f({sa})]/({sb} − {sa}) = ({_short(fb - fa)})/({_short(A['b'] - A['a'])}) = {_ex(m)}",
-               f"Secant slope (average rate of change): m = [f({sb}) − f({sa})]/({sb} − {sa}) = ({_short(fb - fa)})/({_short(A['b'] - A['a'])}) = {_ex(m)}"))
+    sa_ = f"({sa})" if sa.startswith("−") else sa
+    st.append((f"Kesen eğimi (ortalama değişim): m = [f({sb}) − f({sa})]/({sb} − {sa_}) = ({_short(fb - fa)})/({_at(A['b'] - A['a'])}) = {_ex(m)}",
+               f"Secant slope (average rate of change): m = [f({sb}) − f({sa})]/({sb} − {sa_}) = ({_short(fb - fa)})/({_at(A['b'] - A['a'])}) = {_ex(m)}"))
     ds = _ps(A["d"]) if A["d"] is not None else "f'"
     eqs = ""
     out_t = out_e = ""
@@ -4134,7 +4162,9 @@ def solve(P):
         try:
             cc = sp.Symbol("c", real=True)
             eqs = f":  {_ps(A['d'].subs(A['x'], cc))} = {_short(m)}"
-            alls = sp.solveset(sp.Eq(A["d"], m), A["x"], sp.S.Reals)
+            alls = sp.solveset(sp.Eq(A["d"], m), A["x"], sp.S.Reals) if _realize(A["d"]) == A["d"] else None
+            if alls is None and A["af"] >= 0:
+                alls = sp.solveset(sp.Eq(A["d"], m), A["x"], sp.Interval.open(0, sp.oo))
             if isinstance(alls, sp.FiniteSet):
                 outs = [r for r in alls if _finite(r) and not (A["af"] < _fl(r) < A["bf"])]
                 if outs:
@@ -4147,14 +4177,19 @@ def solve(P):
                f"f'({vn}) = {ds};  solve f'(c) = m on ({sa}, {sb}){eqs}"))
     cs = A["cs"]
     if cs:
-        ct = ", ".join((_ex(c) if c is not None else "≈ " + _g(z, 7)) for c, z in cs)
-        st.append((f"c = {ct}  ∈ ({sa}, {sb}) ✓{out_t}  — bu noktada teğet, kesene paraleldir.",
-                   f"c = {ct}  ∈ ({sa}, {sb}) ✓{out_e}  — here the tangent line is parallel to the secant."))
+        if all(c is not None for c, _ in cs):
+            ct = ", ".join(_ex(c) for c, z in cs)
+            ceq = "c = " + ct
+        else:
+            ct = ", ".join(_g(z, 7) for c, z in cs)
+            ceq = "c ≈ " + ct
+        st.append((f"{ceq}  ∈ ({sa}, {sb}) ✓{out_t}  — bu noktada teğet, kesene paraleldir.",
+                   f"{ceq}  ∈ ({sa}, {sb}) ✓{out_e}  — here the tangent line is parallel to the secant."))
         if abs(_fl(m)) < 1e-12:
             st.append(("f(a) = f(b) olduğundan bu, Rolle teoremidir: f'(c) = 0 (yatay teğet).",
                        "Since f(a) = f(b) this is Rolle's theorem: f'(c) = 0 (horizontal tangent)."))
         fmt["c"] = ct
-        ans = (f"m = {_short(m)};  c = {ct}", f"m = {_short(m)};  c = {ct}")
+        ans = (f"m = {_short(m)};  {ceq}", f"m = {_short(m)};  {ceq}")
     else:
         st.append((f"({sa}, {sb}) içinde f'(c) = m sağlayan c yok.", f"No c in ({sa}, {sb}) satisfies f'(c) = m."))
         ans = (f"m = {_short(m)};  uygun c yok", f"m = {_short(m)};  no such c")
