@@ -39,7 +39,9 @@ PyMuPDF; Windows/macOS paketleme betikleri `pypdf`'i kurar.
 **Telif/lisans:** taranan kitabın metni **ne saklanır ne gösterilir**. Bir örnekten
 yalnızca matematiksel içerik (ifade, katsayılar, sınırlar) ve kaynak referansı
 (dosya adı + sayfa) alınır; soru cümlesi programın kendi cümlesiyle yeniden yazılır.
-"Sayıları değiştir" (varsayılan açık) katsayıları da değiştirir. Gömülü örnek sorular
+"Sayıları değiştir" (varsayılan açık) katsayıları da değiştirir ve birkaç aday arasından
+cevabı en sade olanı seçer; limit sorularında ise sorunun özü olan yapı (0/0 deliği gibi)
+bozulmasın diye ifade korunur. Gömülü örnek sorular
 kitaplardan kopyalanmamıştır: kendi ifademizle yazılmış tipik ders alıştırmalarıdır.
 
 **Sınırlar:** Tarayıcı kural tabanlıdır; PDF'te resim olarak duran ya da metne kötü

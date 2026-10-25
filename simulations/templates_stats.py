@@ -1071,7 +1071,7 @@ EXAMPLES += [
 TEMPLATES["regression"] = {
     "course": "prob",
     "title": ("Doğrusal regresyon: en küçük kareler", "Linear regression: least squares"),
-    "topics": ["linear regression", "regression", "least squares", "least-squares line", "line of best fit",
+    "topics": ["correlation", "korelasyon", "linear regression", "regression", "least squares", "least-squares line", "line of best fit",
                "best fit line", "best-fit line", "scatter plot", "scatterplot", "residual", "residuals",
                "correlation coefficient", "coefficient of determination", "r squared", "r-squared",
                "correlation and regression", "prediction",

@@ -658,7 +658,7 @@ def _sol2(a, b, c, y0, v0, var="y"):
 TEMPLATES["slope_field_expr"] = {
     "course": "diffeq",
     "title": ("Eğim alanı ve çözüm eğrisi", "Slope field and a solution curve"),
-    "topics": ["slope field", "slope fields", "direction field", "direction fields", "isocline",
+    "topics": ["linear equations", "first order linear", "linear first order", "integrating factor", "exact equations", "exact differential equations", "doğrusal diferansiyel denklem", "integral çarpanı", "tam diferansiyel denklem", "slope field", "slope fields", "direction field", "direction fields", "isocline",
                "first order", "first-order", "initial value problem", "solution curve",
                "separable", "linear differential", "autonomous", "equilibrium solution",
                "eğim alanı", "yön alanı", "doğrultu alanı", "başlangıç değer problemi",
@@ -2333,7 +2333,7 @@ EXAMPLES += [
 TEMPLATES["predator_prey"] = {
     "course": "diffeq",
     "title": ("Av-avcı modeli (Lotka–Volterra)", "Predator-prey model (Lotka–Volterra)"),
-    "topics": ["predator-prey", "predator prey", "lotka-volterra", "lotka volterra", "population dynamics",
+    "topics": ["systems of differential equations", "systems of des", "system of differential equations", "diferansiyel denklem sistemleri", "predator-prey", "predator prey", "lotka-volterra", "lotka volterra", "population dynamics",
                "interacting populations", "nonlinear system", "phase plane", "phase portrait",
                "av-avcı", "av avcı", "lotka", "faz düzlemi", "faz portresi", "popülasyon dinamiği",
                "doğrusal olmayan sistem"],

@@ -1101,7 +1101,7 @@ EXAMPLES += [
 TEMPLATES["gaussian_elim"] = {
     "course": "linalg",
     "title": ("Gauss yok etme ve RREF", "Gaussian elimination and RREF"),
-    "topics": ["gaussian elimination", "gauss-jordan", "gauss jordan", "row operations",
+    "topics": ["inverse of a matrix", "matrix inverse", "inverse matrices", "null space", "ters matris", "sıfır uzayı", "gaussian elimination", "gauss-jordan", "gauss jordan", "row operations",
                "elementary row operations", "row echelon form", "reduced row echelon", "rref",
                "augmented matrix", "systems of linear equations", "linear systems",
                "back substitution", "gauss eliminasyonu", "gauss yok etme", "satır işlemleri",
@@ -1660,7 +1660,7 @@ EXAMPLES += [
 TEMPLATES["linear_combination"] = {
     "course": "linalg",
     "title": ("Lineer kombinasyon ve germe (span)", "Linear combination and span"),
-    "topics": ["linear combination", "linear combinations", "span", "spanning set", "basis",
+    "topics": ["cramer's rule", "cramers rule", "cramer kuralı", "linear combination", "linear combinations", "span", "spanning set", "basis",
                "linear independence", "linearly independent", "coordinates", "change of basis",
                "lineer kombinasyon", "doğrusal birleşim", "germe", "gerilen uzay", "taban",
                "lineer bağımsızlık", "doğrusal bağımsızlık", "koordinat"],

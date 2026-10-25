@@ -353,7 +353,7 @@ EXAMPLES += [
 TEMPLATES["triangle_area"] = {
     "course": "geo",
     "title": ("Üçgenin alanı", "Area of a triangle"),
-    "topics": ["area of a triangle", "triangle area", "base and height", "altitude",
+    "topics": ["area of triangles", "üçgenlerin alanı", "area of a triangle", "triangle area", "base and height", "altitude",
                "parallelogram", "area", "areas of polygons", "üçgenin alanı", "alan",
                "taban", "yükseklik", "paralelkenar", "alan hesabı"],
     "code": r'''

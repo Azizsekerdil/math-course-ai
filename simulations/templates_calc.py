@@ -678,9 +678,10 @@ TEMPLATES["limit_expr"] = {
     "topics": ["limit", "limits", "one-sided limit", "one sided limits", "limits at infinity",
                "infinite limits", "evaluating limits", "limit laws", "indeterminate form",
                "removable discontinuity", "jump discontinuity", "continuity", "vertical asymptote",
-               "horizontal asymptote", "limits by factoring", "l'hopital", "l'hôpital",
-               "limit", "tek taraflı limit", "soldan limit", "sağdan limit", "sonsuzda limit",
-               "sonsuz limit", "belirsizlik", "süreklilik", "süreksizlik", "asimptot"],
+               "horizontal asymptote", "limits by factoring", "l'hopital", "l'hôpital", "l'hospital",
+               "lhopital", "lhospital", "squeeze theorem", "sandwich theorem",
+               "tek taraflı limit", "soldan limit", "sağdan limit", "sonsuzda limit",
+               "sonsuz limit", "belirsizlik", "süreklilik", "süreksizlik", "asimptot", "sıkıştırma teoremi"],
     "code": _code(r'''
 
 
@@ -757,18 +758,44 @@ def _side(f, x, h, a, af, sgn, inf):
         if num[0] == "fin":
             return {"k": "fin", "v": float(num[1]), "approx": True}
         return {"k": num[0], "v": None, "approx": False}
-    try:
-        if inf:
-            r = sp.limit(f, x, sp.oo if sgn > 0 else -sp.oo)
-        else:
-            r = sp.limit(f, x, a, dir="+" if sgn > 0 else "-")
-        sy = _lv(r)
-    except Exception:
-        sy = None
-    if sy is not None:
-        return {"k": sy[0], "v": sy[1], "approx": False}
-    if num[0] == "fin":
-        return {"k": "fin", "v": float(num[1]), "approx": True}
+    # Two symbolic routes: sympy's own one-sided limit, and the same limit written with a POSITIVE
+    # variable (x = a ± h, h → 0⁺ or x = −t, t → ∞). sympy 1.14 gets e.g. lim 2**x (x → −∞) = ∞ and a
+    # one-sided Piecewise limit wrong on the first route, so a symbolic value is only trusted when it
+    # agrees with the numerical probe whenever that probe is conclusive.
+    cands = []
+    hp = sp.Symbol("h_", positive=True)
+    conclusive = num[0] in ("fin", "+inf", "-inf")
+
+    def agrees(sy):
+        return sy[0] == num[0] and (sy[0] != "fin" or abs(_fl(sy[1]) - num[1]) <= 1e-3 * (1 + abs(num[1])))
+    for route in (0, 1):
+        try:
+            if route == 0:
+                if inf:
+                    r = sp.limit(f, x, sp.oo if sgn > 0 else -sp.oo)
+                else:
+                    r = sp.limit(f, x, a, dir="+" if sgn > 0 else "-")
+            else:
+                if inf:
+                    r = sp.limit(f.subs(x, sgn * hp), hp, sp.oo)
+                else:
+                    r = sp.limit(f.subs(x, a + sgn * hp), hp, 0, dir="+")
+            sy = _lv(r)
+            if sy is not None:
+                cands.append(sy)
+                if not conclusive or agrees(sy):
+                    break
+        except Exception:
+            pass
+    if conclusive:
+        for sy in cands:
+            if agrees(sy):
+                return {"k": sy[0], "v": sy[1], "approx": False}
+        if num[0] == "fin":
+            return {"k": "fin", "v": float(num[1]), "approx": True}
+        return {"k": num[0], "v": None, "approx": False}
+    if cands:
+        return {"k": cands[0][0], "v": cands[0][1], "approx": False}
     return {"k": num[0], "v": None, "approx": False}
 
 
@@ -1022,6 +1049,7 @@ def _alg_steps(A):
 def _inf_steps(A):
     f, x = A["f"], A["x"]
     vn, at = A["vn"], A["at"]
+    big = vn if A["inf"] > 0 else f"|{vn}|"
     st = []
     try:
         if f.is_rational_function(x):
@@ -1050,10 +1078,10 @@ def _inf_steps(A):
                 st.append((f"Baş terim {_ps(sp.LT(num, x))} ⇒ |f| sınırsız büyür.",
                            f"Leading term {_ps(sp.LT(num, x))} ⇒ |f| grows without bound."))
         else:
-            st.append((f"{vn} çok büyürken baskın terimleri karşılaştır ve değer tablosuna bak.",
-                       f"As {vn} grows, compare the dominant terms and look at a table of values."))
+            st.append((f"{big} çok büyürken baskın terimleri karşılaştır ve değer tablosuna bak.",
+                       f"As {big} grows, compare the dominant terms and look at a table of values."))
     except Exception:
-        st.append((f"{vn} çok büyürken değer tablosuna bak.", f"Look at a table of values as {vn} grows."))
+        st.append((f"{big} çok büyürken değer tablosuna bak.", f"Look at a table of values as {big} grows."))
     return st
 
 
@@ -1126,6 +1154,12 @@ def solve(P):
         sd = "⁺" if (L is not None and L["k"] == "undef") else "⁻"
         ans = (f"lim ({vn} → {at}{sd}) f({vn}) = {vt}  (f yalnızca {'sağ' if sd == '⁺' else 'sol'} tarafta tanımlı)",
                f"lim ({vn} → {at}{sd}) f({vn}) = {ve}  (f is defined only on the {'right' if sd == '⁺' else 'left'})")
+
+    def _eq(s_):
+        # numerically estimated values read "lim … ≈ 0.5", not "lim … = ≈ 0.5"
+        return s_.replace("= ≈", "≈").replace("is ≈", "≈")
+    ans = (_eq(ans[0]), _eq(ans[1]))
+    st = [(_eq(a_), _eq(b_)) for a_, b_ in st]
     return {"answer": ans, "steps": st,
             "fmt": {"fx": A["fx"], "pretty_f": A["fx"], "a": at, "lim": arrow}}
 
@@ -1479,9 +1513,11 @@ TEMPLATES["derivative_expr"] = {
     "topics": ["derivative", "derivatives", "definition of the derivative", "difference quotient",
                "tangent line", "secant line", "slope of the tangent", "power rule", "product rule",
                "quotient rule", "chain rule", "differentiation", "derivative rules",
-               "instantaneous rate of change", "instantaneous velocity",
+               "instantaneous rate of change", "instantaneous velocity", "rates of change", "rate of change",
+               "linear approximation", "linearization", "tangent line approximation", "differentials",
                "türev", "türevin tanımı", "teğet doğrusu", "teğet", "kesen", "türev kuralları",
-               "zincir kuralı", "çarpım kuralı", "bölüm kuralı", "anlık değişim", "anlık hız"],
+               "zincir kuralı", "çarpım kuralı", "bölüm kuralı", "anlık değişim", "anlık hız",
+               "değişim hızı", "doğrusal yaklaşım", "lineer yaklaşım"],
     "code": _code(r'''
 
 
@@ -1729,8 +1765,17 @@ def solve(P):
     st.append((f"f({at}) = {_ex(y0)},  f'({at}) = {_ex(m)}  (teğetin eğimi)",
                f"f({at}) = {_ex(y0)},  f'({at}) = {_ex(m)}  (slope of the tangent)"))
     tl = A["tans"]
-    st.append((f"Teğet: y − {_short(y0)} = {_short(m)}·({vn} − {_short(A['x0'])})  ⇒  y {tl}",
-               f"Tangent: y − {_short(y0)} = {_short(m)}·({vn} − {_short(A['x0'])})  ⇒  y {tl}"))
+
+    def _less(name, v):
+        # "y − 2", "y + 3" (never "y − −3"), "y" for 0
+        fv = _fl(v)
+        if fv == 0:
+            return name
+        return f"{name} + {_short(-v)}" if fv < 0 else f"{name} − {_short(v)}"
+    xs_ = _less(vn, A["x0"])
+    xs_ = f"({xs_})" if xs_ != vn else vn
+    pt_ = f"{_less('y', y0)} = {_short(m)}·{xs_}"
+    st.append((f"Teğet: {pt_}  ⇒  y {tl}", f"Tangent: {pt_}  ⇒  y {tl}"))
     fmt["tangent"] = "y " + tl
     ans = (f"f'({vn}) = {dtxt};  f'({at}) = {_ex(m)};  teğet: y {tl}",
            f"f'({vn}) = {dtxt};  f'({at}) = {_ex(m)};  tangent: y {tl}")
@@ -1816,6 +1861,25 @@ def build(fig, P):
     dlab2 = bx.text(0, 0, "", color=RED, fontsize=10.5, fontweight="bold", zorder=9,
                     bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.85))
     info = _info(ax, 10.5, xs, ys)
+    # the tangent label takes the emptiest corner that the info box does NOT use (they used to overlap)
+    ipos = info.get_position()
+    icorner = (ipos[0] > 0.5, ipos[1] > 0.5)
+    uu = (xs - xa) / (xb - xa)
+    vv = (ys - lo) / (hi - lo)
+    okk = np.isfinite(uu) & np.isfinite(vv)
+    best = None
+    for right in (True, False):
+        for top in (False, True):
+            if (right, top) == icorner:
+                continue
+            cu = (uu > 0.6) if right else (uu < 0.4)
+            cv = (vv > 0.85) if top else (vv < 0.15)
+            score = int(np.sum(cu & cv & okk)) + (0 if right else 1)
+            if best is None or score < best[0]:
+                best = (score, right, top)
+    tlab.set_position((0.98 if best[1] else 0.02, 0.96 if best[2] else 0.04))
+    tlab.set_ha("right" if best[1] else "left")
+    tlab.set_va("top" if best[2] else "bottom")
     rgt, lft = xb - x0f, x0f - xa
     okr = _h1(h, x0f + 0.5 * rgt) == _h1(h, x0f + 0.5 * rgt)
     okl = _h1(h, x0f - 0.5 * lft) == _h1(h, x0f - 0.5 * lft)
@@ -1925,8 +1989,9 @@ def vary(P, rnd):
         k, x0 = rnd.choice([(3, 4), (4, 3), (5, 12), (12, 5), (6, 8), (8, 6), (8, 15)])
         out = {"f": f"sqrt({vn}**2 + {k * k})", "x0": x0}
     elif ("xmin" in P or "xmax" in P) and float(P.get("xmin", -1)) >= 0:
-        a = rnd.choice([2, 3, 4, 5])
-        T = rnd.choice([3, 4, 5, 6])
+        # height of a thrown ball: keep g ≈ 10 m/s² (s = −5t² + v₀t) so the story stays physical
+        a = 5
+        T = rnd.choice([2, 3, 4, 5, 6])
         b = a * T
         x0 = rnd.randint(1, T - 1)
         out = {"f": f"-{a}*{vn}**2 + {b}*{vn}", "x0": x0, "xmin": 0, "xmax": T}
@@ -1974,11 +2039,14 @@ EXAMPLES += [
 TEMPLATES["integral_expr"] = {
     "course": "calc1",
     "title": ("Belirli integral: işaretli alan", "Definite integral: signed area"),
-    "topics": ["integral", "integrals", "definite integral", "fundamental theorem of calculus",
+    "topics": ["trigonometric substitution", "trig substitution", "partial fractions", "integration techniques", "techniques of integration", "trigonometrik değişken değiştirme", "basit kesirlere ayırma", "integral teknikleri", "integral", "integrals", "definite integral", "fundamental theorem of calculus",
                "antiderivative", "antiderivatives", "area under the curve", "area under a curve",
                "net area", "signed area", "net change", "evaluating definite integrals",
-               "integration", "belirli integral", "ters türev", "eğri altındaki alan",
-               "kalkülüsün temel teoremi", "temel teorem", "net alan", "işaretli alan", "integral"],
+               "integration", "indefinite integral", "u-substitution", "u substitution", "substitution rule",
+               "integration by substitution", "belirli integral", "belirsiz integral", "ters türev",
+               "eğri altındaki alan", "kalkülüsün temel teoremi", "integralde değişken değiştirme",
+               "average value of a function", "fonksiyonun ortalama değeri",
+               "net alan", "işaretli alan"],
     "code": _code(r'''
 
 
@@ -2100,8 +2168,22 @@ def _analyze(P):
             A["Fa"], A["Fb"] = _simp(Fa), _simp(Fb)
             how = "ftc"
             nchk = _quad(h, af, bf)
-            if nchk == nchk and abs(_fl(val) - nchk) > 1e-4 * (1 + abs(nchk)):
-                val, how = None, ""
+            # tolerance relative to the size of the integrand (∫ of an odd 1000x⁷ is 0 but Simpson
+            # returns ~1e-3); an integrable singularity at an end (1/√x on [0, 4]) makes Simpson
+            # inaccurate, so there a disagreement is settled by sympy's definite integral instead
+            yck = np.abs(ys[np.isfinite(ys)])
+            scale = float(np.max(yck)) * abs(bf - af) if len(yck) else 0.0
+            A["nchk_ok"] = nchk == nchk and abs(_fl(val) - nchk) <= 1e-6 * (1 + abs(_fl(val))) + 1e-9 * scale
+            if nchk == nchk and abs(_fl(val) - nchk) > 1e-4 * (1 + abs(nchk)) + 1e-7 * scale:
+                keep = False
+                if A["endnan"]:
+                    try:
+                        r = sp.integrate(f, (x, a, b))
+                        keep = (not r.has(*_BADF)) and _finite(r) and abs(_fl(r) - _fl(val)) <= 1e-9 * (1 + abs(_fl(val)))
+                    except Exception:
+                        keep = False
+                if not keep:
+                    val, how = None, ""
     if val is None and (A["improper"] or F is None) and not A["undef"]:
         try:
             if _tame(f, x):
@@ -2167,7 +2249,8 @@ def _impr(A):
 def solve(P):
     A = _analyze(P)
     vn = A["vn"]
-    fmt = {"fx": A["fx"], "pretty_f": A["fx"], "a": A["sa"], "b": A["sb"], "int": A["isym"]}
+    fmt = {"fx": A["fx"], "pretty_f": A["fx"], "a": A["sa"], "b": A["sb"], "int": A["isym"],
+           "integrand": f"{A['fx']} d{vn}"}
     if not A["ok"]:
         return {"answer": ("İfade çözümlenemedi", "Could not parse the expression"),
                 "steps": [(f"Girdi: {A['raw']}", f"Input: {A['raw']}"),
@@ -2175,6 +2258,7 @@ def solve(P):
                            "Write the expression in x using * and **.")], "fmt": fmt}
     I = A["isym"]
     fxp = f"({A['fx']})" if A["f"].is_Add else A["fx"]
+    fmt["integrand"] = f"{fxp} d{vn}"
     st = [(f"İstenen: {I} {fxp} d{vn}", f"Find: {I} {fxp} d{vn}")]
     F, how, val = A["F"], A["how"], A["val"]
     if A["undef"]:
@@ -2228,9 +2312,12 @@ def solve(P):
         sg = "≥" if A["vf"] >= 0 else "≤"
         st.append((f"[{A['sa']}, {A['sb']}] üzerinde f {sg} 0 ⇒ integral, eğri ile {vn} ekseni arasındaki alanın {'kendisidir' if A['vf'] >= 0 else 'negatifidir'}.",
                    f"On [{A['sa']}, {A['sb']}], f {sg} 0 ⇒ the integral is {'the area' if A['vf'] >= 0 else 'minus the area'} between the curve and the {vn}-axis."))
-    if how == "ftc" and A["nval"] == A["nval"]:
+    if how == "ftc" and A["nval"] == A["nval"] and A.get("nchk_ok"):
         st.append((f"Sayısal kontrol (Simpson): ≈ {_g(A['nval'], 8)} ✓", f"Numerical check (Simpson): ≈ {_g(A['nval'], 8)} ✓"))
     fmt["value"] = vtxt
+    un = str(P.get("unit", "")).strip()
+    if un:
+        eq += " " + un   # optional unit for word problems (e.g. litres of water)
     ans = (f"{I} {fxp} d{vn} {eq}", f"{I} {fxp} d{vn} {eq}")
     if len(parts) > 1 and not A["improper"]:
         ans = (ans[0] + f"  (toplam alan {fmt['total']})", ans[1] + f"  (total area {fmt['total']})")
@@ -2297,7 +2384,10 @@ def build(fig, P):
     acurve, = bx.plot([], [], color=PURPLE, lw=2.2)
     adot, = bx.plot([], [], "o", color=PURPLE, ms=7)
     aline, = bx.plot([], [], "--", color=GREEN, lw=1.5)
-    alab = bx.text(0, 0, "", color=GREEN, fontsize=11, fontweight="bold", ha="right", va="bottom",
+    # the value label sits under the dashed line when the line is near the top of the panel
+    a_top = acc[-1] > alo + 0.6 * (ahi - alo)
+    alab = bx.text(0, 0, "", color=GREEN, fontsize=11, fontweight="bold", ha="right",
+                   va="top" if a_top else "bottom",
                    bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.85))
     plabs, ptxt = [], []
     for u, w, e, n_ in A["parts"]:
@@ -2353,7 +2443,7 @@ def build(fig, P):
             lab.set_text(txt if done and len(plabs) > 1 else "")
         if done:
             aline.set_data([pa, pb], [acc[-1], acc[-1]])
-            alab.set_position((X[-1] - 0.01 * (X[-1] - X[0]), acc[-1]))
+            alab.set_position((X[-1] - 0.01 * (X[-1] - X[0]), acc[-1] + (-0.04 if a_top else 0.02) * (ahi - alo)))
             alab.set_text(A["isym"] + " = " + (_short(A["val"]) if A["val"] is not None else _g(A["vf"], 5)))
         else:
             aline.set_data([], [])
@@ -2418,8 +2508,8 @@ def vary(P, rnd):
 EXAMPLES += [
     {"id": "calc1-integral-1", "kind": "integral_expr",
      "title": ("Parabol altındaki alan", "Area under a parabola"),
-     "q": ("{int} {pretty_f} dx integralini temel teoremle hesapla ve eğri altındaki alan olarak yorumla.",
-           "Evaluate {int} {pretty_f} dx with the fundamental theorem and interpret it as the area under the curve."),
+     "q": ("{int} {integrand} integralini temel teoremle hesapla ve eğri altındaki alan olarak yorumla.",
+           "Evaluate {int} {integrand} with the fundamental theorem and interpret it as the area under the curve."),
      "P": {"f": "x**2", "a": 0, "b": 2}},
     {"id": "calc1-integral-2", "kind": "integral_expr", "topics": ["net area", "total area", "toplam alan"],
      "title": ("Net alan ve toplam alan", "Net area versus total area"),
@@ -2435,7 +2525,7 @@ EXAMPLES += [
            "arasında depoya kaç litre su girer?",
            "Water flows into a tank at r(t) = {pretty_f} litres per minute (t in minutes). How many litres "
            "enter the tank between t = {a} and t = {b}?"),
-     "P": {"f": "10 + 4*sqrt(t)", "a": 0, "b": 9}},
+     "P": {"f": "10 + 4*sqrt(t)", "a": 0, "b": 9, "unit": "L"}},
 ]
 
 
@@ -2449,7 +2539,7 @@ TEMPLATES["extrema_expr"] = {
                "second derivative test", "increasing and decreasing", "concavity", "inflection point",
                "inflection points", "closed interval method", "curve sketching",
                "ekstremum", "kritik nokta", "yerel maksimum", "yerel minimum", "mutlak maksimum",
-               "mutlak minimum", "artan azalan", "konkavlık", "büküm noktası", "birinci türev testi",
+               "mutlak minimum", "artan azalan", "artan ve azalan", "konkavlık", "büküm nokta", "birinci türev testi",
                "ikinci türev testi", "eğri çizimi"],
     "code": _code(r'''
 
@@ -2867,14 +2957,20 @@ def vary(P, rnd):
             c0 = -rnd.randint(2, 8)
         else:
             p = rnd.randint(-3, 2)
-            q = p + rnd.choice([2, 4])
+            q = p + rnd.choice([4, 6])   # q − p = 2 forces far-away, out-of-scale end values
             k = rnd.choice([1, -1, 2])
             c0 = rnd.randint(-6, 6)
         # f' = 3k(x - p)(x - q)  ->  f = k(x^3 - 3/2 (p+q) x^2 + 3pq x) + c
         poly = sp.expand(k * (z ** 3 - sp.Rational(3, 2) * (p + q) * z ** 2 + 3 * p * q * z) + c0)
         if all(t.is_Integer for t in sp.Poly(poly, z).all_coeffs()):
-            a = 0 if pos else p - rnd.choice([1, 2])
-            b = q + rnd.choice([1, 2])
+            # f(p − (q − p)/2) = f(q) and f(q + (q − p)/2) = f(p) for this cubic: avoid those end
+            # points, otherwise the absolute max/min would be a tie between two points
+            hw = sp.Rational(q - p, 2)
+            a = 0 if pos else p - rnd.choice([d for d in (1, 2, 3) if d != hw])
+            b = q + rnd.choice([d for d in (1, 2, 3) if d != hw])
+            vals = [poly.subs(z, t) for t in [a, p, q, b]]
+            if len(set(vals)) < 4 or (pos and p - a == hw):
+                continue
             return {"f": sp.sstr(poly), "a": a, "b": b}
 '''),
 }
@@ -3074,9 +3170,10 @@ def solve(P):
     tab = ",  ".join(f"{S}{_sub(n)} ≈ {_g(v, 6)}" for n, v in A["sums"])
     st.append((f"n arttıkça: {tab}", f"As n grows: {tab}"))
     ex = _ex(A["exact"]) if A["exact"] is not None else "≈ " + _g(A["ef"], 7)
+    eqx = ("= " + ex) if A["exact"] is not None else ex
     err = abs(A["sums"][-1][1] - A["ef"])
-    st.append((f"Gerçek değer: ∫ f d{vn} = {ex};  n = 64 için hata ≈ {_g(err, 3)}",
-               f"Exact value: ∫ f d{vn} = {ex};  error for n = 64 ≈ {_g(err, 3)}"))
+    st.append((f"Gerçek değer: ∫ f d{vn} {eqx};  n = 64 için hata ≈ {_g(err, 3)}",
+               f"Exact value: ∫ f d{vn} {eqx};  error for n = 64 ≈ {_g(err, 3)}"))
     note = None
     if meth == "left" and A["inc"]:
         note = ("f artan ⇒ sol toplam her n için integralden küçüktür (alttan yaklaşır).",
@@ -3103,7 +3200,8 @@ def solve(P):
         st.append(note)
     fmt["s4"] = s4t
     fmt["exact"] = ex
-    ans = (f"{S}₄ = {s4t};  n → ∞ iken {S}ₙ → ∫ = {ex}", f"{S}₄ = {s4t};  as n → ∞, {S}ₙ → ∫ = {ex}")
+    s4q = s4t if s4t.startswith("≈") else "= " + s4t
+    ans = (f"{S}₄ {s4q};  n → ∞ iken {S}ₙ → ∫ {eqx}", f"{S}₄ {s4q};  as n → ∞, {S}ₙ → ∫ {eqx}")
     return {"answer": ans, "steps": st, "fmt": fmt}
 
 
@@ -3171,7 +3269,8 @@ def build(fig, P):
     def update(i):
         ph = -1 if i < 14 else min(5, (i - 14) // 22)
         if ph >= 0:
-            n, s_, sx_, sy_ = data[ph]
+            # the closing frames return to n = 4, the sum the question asks for (answer shown in the box)
+            n, s_, sx_, sy_ = data[1] if i >= 146 else data[ph]
             dx = (bf - af) / n
             g = _ramp(i - 14 - 22 * ph, 0, 7) if i < 146 else 1.0
             for k, pch in enumerate(shapes):
@@ -3263,7 +3362,7 @@ EXAMPLES += [
            "A braking car has velocity v(t) = {pretty_f} m/s (0 ≤ t ≤ {b}). Estimate the distance it travels "
            "with a {method} sum using n = 4 subintervals and compare with the exact value."),
      "P": {"f": "16 - t**2", "a": 0, "b": 4, "method": "right"}},
-    {"id": "calc1-riemann-3", "kind": "riemann_sum", "topics": ["natural logarithm", "ln 2", "doğal logaritma"],
+    {"id": "calc1-riemann-3", "kind": "riemann_sum", "topics": ["ln 2", "trapezoidal rule error", "yamuk kuralı hatası"],
      "title": ("Yamuk kuralı ile logaritma", "A logarithm with the trapezoidal rule"),
      "q": ("f(x) = {pretty_f} eğrisi altında [{a}, {b}] aralığındaki alanın tam değeri: {exact}. Bu alanı {method} "
            "kuralıyla n = 4 için yaklaşık hesapla; n arttıkça hata nasıl küçülür?",
@@ -3505,15 +3604,20 @@ def build(fig, P):
 
 
 def vary(P, rnd):
-    fam = rnd.choice(["sq", "85", "85", "2116"])
-    if fam == "sq":
-        m = rnd.choice([1, 2, 3, 4, 5])
-        L = W = 6 * m
-    elif fam == "85":
-        k = rnd.choice([1, 2, 3, 4])
-        L, W = 8 * k, 5 * k
+    # keep the TYPE of the original sheet: a square stays a square (the question says "square"),
+    # a sheet whose optimal cut is a radical keeps a radical answer, the others keep an integer cut
+    L0, W0 = _dims(P)
+    D0 = L0 * L0 - L0 * W0 + W0 * W0
+    whole = L0 == int(L0) and W0 == int(W0)
+    radical = (not whole) or math.isqrt(int(round(D0))) ** 2 != int(round(D0))
+    if abs(L0 - W0) < 1e-9:
+        pool = [(6 * m, 6 * m) for m in (1, 2, 3, 4, 5)]
+    elif radical:
+        pool = [(12, 8), (16, 12), (18, 12), (20, 10), (24, 16), (25, 20), (30, 20), (36, 24), (40, 30)]
     else:
-        L, W = 21, 16
+        pool = [(8, 5), (16, 10), (21, 16), (24, 9), (24, 15), (30, 14), (32, 20), (40, 25)]
+    pool = [t for t in pool if t != (L0, W0)] or pool
+    L, W = rnd.choice(pool)
     out = {"L": L, "W": W}
     if "unit" in P:
         out["unit"] = P["unit"]
@@ -3550,9 +3654,9 @@ TEMPLATES["related_rates_ladder"] = {
     "course": "calc1",
     "title": ("İlişkili oranlar: kayan merdiven", "Related rates: the sliding ladder"),
     "topics": ["related rates", "related rate", "sliding ladder", "ladder problem", "ladder",
-               "implicit differentiation", "rates of change", "chain rule application",
+               "implicit differentiation", "chain rule application",
                "ilişkili oranlar", "bağımlı değişim oranları", "kayan merdiven", "merdiven problemi",
-               "kapalı türev", "değişim hızı"],
+               "kapalı türev"],
     "code": _code(r'''
 from matplotlib.patches import FancyArrowPatch, Rectangle
 
@@ -3590,8 +3694,8 @@ def solve(P):
                f"Extra: for the angle θ with the floor, cos θ = x/{_g(L)} ⇒ dθ/dt = −(dx/dt)/y = {_ex(dth)} rad/s"))
     st.append(("y küçüldükçe |dy/dt| = x·v/y büyür: üst uç yere yaklaşırken giderek hızlanır.",
                "As y shrinks, |dy/dt| = x·v/y grows: the top speeds up as it nears the floor."))
-    return {"answer": (f"dy/dt = {_exd(dy)} {u}/s  (üst uç {_g(abs(_fl(dy)), 5)} {u}/s hızla {'aşağı' if down else 'yukarı'})",
-                       f"dy/dt = {_exd(dy)} {u}/s  (the top moves {'down' if down else 'up'} at {_g(abs(_fl(dy)), 5)} {u}/s)"),
+    return {"answer": (f"dy/dt = {_exd(dy)} {u}/s  (üst uç {_g(abs(_fl(dy)), 6)} {u}/s hızla {'aşağı' if down else 'yukarı'})",
+                       f"dy/dt = {_exd(dy)} {u}/s  (the top moves {'down' if down else 'up'} at {_g(abs(_fl(dy)), 6)} {u}/s)"),
             "steps": st, "fmt": {"L": _g(L), "v": _g(v), "x0": _g(x0), "unit": u, "y0": _short(y0)}}
 
 
@@ -3684,7 +3788,7 @@ def build(fig, P):
         dyv = -x * v / y if y > 1e-9 else -1e9
         s1 = 0.12 * L * (1 if v > 0 else -1)
         a1.set_positions((x, 0.04 * L), (x + s1, 0.04 * L))
-        s2 = max(-0.45 * L, min(0.45 * L, 0.12 * L * dyv / av))
+        s2 = max(-0.45 * L, -y, min(0.45 * L, 0.12 * L * dyv / av))
         a2.set_positions((-0.02 * L, y), (-0.02 * L, y + s2))
         k = int(np.searchsorted(tt, t, side="right"))
         gcur.set_data(tt[:max(k, 1)], yy[:max(k, 1)])
@@ -3711,14 +3815,17 @@ def build(fig, P):
                           + ans.split("  (")[0])
         else:
             info.set_text(_T(P, f"Sonra hızlanır: y = {_g(y, 3)}\ndy/dt = {_g(dyv, 3)} {u}/s",
-                             f"Then it speeds up: y = {_g(y, 3)}\ndy/dt = {_g(dyv, 3)} {u}/s"))
+                             f"Then it speeds up: y = {_g(y, 3)}\ndy/dt = {_g(dyv, 3)} {u}/s")
+                          + _T(P, f"\n(x = {_g(x0)} iken: {ans.split('  (')[0]})",
+                               f"\n(at x = {_g(x0)}: {ans.split('  (')[0]})"))
         return []
 
     return N, update
 
 
 def vary(P, rnd):
-    trip = rnd.choice([(3, 4, 5), (6, 8, 10), (5, 12, 13), (8, 15, 17), (7, 24, 25), (9, 12, 15), (12, 16, 20)])
+    # realistic ladder lengths (≤ 15 m) with whole-number heights
+    trip = rnd.choice([(3, 4, 5), (6, 8, 10), (5, 12, 13), (9, 12, 15)])
     a, b, c = trip
     if rnd.random() < 0.5:
         a, b = b, a
@@ -3754,8 +3861,7 @@ TEMPLATES["newton_method"] = {
     "title": ("Newton yöntemi: teğetlerle köke yaklaşma", "Newton's method: tangent lines to a root"),
     "topics": ["newton's method", "newtons method", "newton method", "newton-raphson", "newton raphson",
                "root finding", "approximating roots", "approximating zeros", "numerical methods",
-               "linear approximation", "newton yöntemi", "kök bulma", "yaklaşık kök", "sayısal yöntem",
-               "doğrusal yaklaşım"],
+               "newton yöntemi", "kök bulma", "yaklaşık kök", "sayısal yöntem"],
     "code": _code(r'''
 
 
@@ -3875,7 +3981,13 @@ def solve(P):
                            "Write the expression in x using * and **.")], "fmt": fmt}
     ds = _ps(A["d"]) if A["d"] is not None else _T(P, "(sayısal)", "(numerical)")
     st = [(f"f({vn}) = {A['fx']},  f'({vn}) = {ds}", f"f({vn}) = {A['fx']},  f'({vn}) = {ds}")]
-    nf = f"  = {_ps(A['Nf'])}" if A["Nf"] is not None else ""
+    nf = ""
+    if A["Nf"] is not None:
+        # write the Newton map in terms of xₖ (not x): "x/2 + 1/x" -> "xₖ/2 + 1/xₖ"
+        s_, out_ = _ps(A["Nf"]), ""
+        for j, ch in enumerate(s_):
+            out_ += ch + ("ₖ" if ch == vn and not s_[j - 1:j].isalpha() and not s_[j + 1:j + 2].isalpha() else "")
+        nf = "  = " + (out_ if len(vn) == 1 else s_)
     st.append((f"Newton adımı: {vn}ₖ₊₁ = {vn}ₖ − f({vn}ₖ)/f'({vn}ₖ){nf}  (teğet doğrunun {vn} eksenini kestiği yer)",
                f"Newton step: {vn}ₖ₊₁ = {vn}ₖ − f({vn}ₖ)/f'({vn}ₖ){nf}  (where the tangent line meets the {vn}-axis)"))
     for k, xk, fk, dk, xn in A["its"]:
@@ -4088,8 +4200,8 @@ def vary(P, rnd):
         c = rnd.choice([1, 2, 3])
         return {"f": f"cos({vn}) - {vn}" if c == 1 else f"cos({vn}) - {vn}/{c}", "x0": 1, "n": n}
     if "**3" in raw:
-        a = rnd.choice([1, 2, 3])
-        b = rnd.choice([3, 4, 5, 7])
+        # (a, b) = (2, 4) is excluded: x = 2 would be an exact root and the start value itself
+        a, b = rnd.choice([(a_, b_) for a_ in (1, 2, 3) for b_ in (3, 4, 5, 7) if (a_, b_) != (2, 4)])
         g = sp.Symbol(vn)
         hh = _num(g ** 3 - a * g - b, g)
         z = _zeros(hh, -10, 10)
@@ -4201,7 +4313,9 @@ def _analyze(P):
             if _jump(h, xs[k], xs[k + 1], sc):
                 cont = False
                 break
-    ds = dh(xs[1:-1])
+    # differentiability is only required on the OPEN interval: f' may blow up at an end point
+    # (√x on [0, 4] satisfies the hypotheses), so the outer 1 % at each end is not inspected
+    ds = dh(xs[20:-20])
     diffb = cont and bool(np.all(np.isfinite(ds)))
     if diffb:
         dd = np.abs(np.diff(ds))
@@ -4416,7 +4530,9 @@ def build(fig, P):
                 yz = _h1(h, z)
                 W2 = 0.45 * (bf - af)
                 ctans[k].set_data([z - W2, z + W2], [yz - mf * W2, yz + mf * W2])
-                clabs[k].set_position((z, yz - 0.05 * (yhi - ylo)))
+                above = fa + mf * (z - af) < yz
+                clabs[k].set_va("bottom" if above else "top")
+                clabs[k].set_position((z, yz + (0.05 if above else -0.05) * (yhi - ylo)))
                 clabs[k].set_text("c" + (_sub(k + 1) if len(czs) > 1 else ""))
                 cvl[k].set_data([z, z], [dlo, mf])
             else:
@@ -4456,10 +4572,11 @@ def vary(P, rnd):
     if "**3" in raw:
         k = rnd.choice([-3, -2, -1, 1, 2])
         b = rnd.choice([1, 2, 3])
-        return {"f": f"{vn}**3 - {abs(k)}*{vn}" if k < 0 else f"{vn}**3 + {k}*{vn}", "a": 0, "b": b}
-    A_ = rnd.choice([10, 20, 30, 40])
-    B_ = rnd.choice([5, 10, 15, 20])
-    T = rnd.choice([2, 3, 4])
+        kx = vn if abs(k) == 1 else f"{abs(k)}*{vn}"
+        return {"f": f"{vn}**3 - {kx}" if k < 0 else f"{vn}**3 + {kx}", "a": 0, "b": b}
+    # car trip s = A t² + B t (km, h): keep the final speed 2AT + B at a road-legal value (≤ 130 km/h)
+    A_, B_, T = rnd.choice([(a_, b_, t_) for a_ in (5, 10, 15, 20, 25, 30) for b_ in (5, 10, 15, 20, 30)
+                            for t_ in (1, 2, 3, 4) if 2 * a_ * t_ + b_ <= 130 and a_ * t_ + b_ >= 30])
     return {"f": f"{A_}*{vn}**2 + {B_}*{vn}", "a": 0, "b": T}
 '''),
 }
@@ -4488,17 +4605,7 @@ EXAMPLES += [
 
 
 # ──────────────────────────────────────────────────────────────────────────
-# Türkçe büyük "İ" ile yazılmış klasör/dosya adları (ör. "Belirli İntegral")
-# str.lower() ile "i̇" (i + birleşik nokta) olur; anahtar kelimelerin bu
-# biçimini de ekleyerek konu eşleştirmesinin kaçırmamasını sağlarız.
-def _dotted_i_variants(words):
-    out = list(words)
-    for kw in words:
-        v = " ".join(("İ" + w[1:]).lower() if w.startswith("i") else w for w in kw.split())
-        if v != kw and v not in out:
-            out.append(v)
-    return out
 
-
-for _tpl in TEMPLATES.values():
-    _tpl["topics"] = _dotted_i_variants(_tpl["topics"])
+# Not: "Belirli İntegral" gibi büyük İ'li adlar engine._lower() ile hem klasör adında hem
+# anahtar kelimede aynı biçime getirilir; ayrıca "i̇" varyantı eklemek aynı kelimeyi iki kez
+# saydırıp bu türlerin puanını şişiriyordu.

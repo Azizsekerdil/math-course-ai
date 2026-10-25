@@ -510,12 +510,28 @@ def _nudge_expr(s, rnd):
 
 
 def change_numbers(kind, P, seed):
+    """Aynı soru tipinde, sayıları değiştirilmiş geçerli bir P döndürür.
+
+    Sayısal türlerde birkaç aday denenir ve cevabı en SADE olan (en kısa
+    cevap metni: tam sayılar kesirlerden, kesirler uzun ondalıklardan kısa)
+    seçilir — 'x = 15/13' yerine 'x = 2' gibi ders kitabı tadında sayılar.
+    İfade (sympy) türlerinde çözüm pahalı olduğundan ilk geçerli aday alınır.
+    """
     rnd = random.Random(seed)
-    for _ in range(6):
+    symbolic = any(isinstance(v, str) and k in ("f", "P", "Q") for k, v in P.items())
+    best = None
+    for _ in range(4 if symbolic else 14):
         Q = {}
         for k, v in P.items():
-            if isinstance(v, str) and k in ("f", "expr", "P", "Q"):
+            if kind == "limit_expr":
+                # limitte ilginç olan yapı (0/0 deliği, sonsuzdaki davranış)
+                # sayılar değişince kaybolur: ifade ve nokta korunur.
+                Q[k] = v
+            elif isinstance(v, str) and k == "expr":
                 Q[k] = _nudge_expr(v, rnd)
+            elif isinstance(v, str) and k in ("f", "P", "Q"):
+                vars_ = tuple(c for c in "xyt" if re.search(r"(?<![a-z])" + c + r"(?![a-z])", v)) or ("x",)
+                Q[k] = to_sympy_string(_nudge_expr(v, rnd), vars_, allow_const=True) or v
             elif k in ("trials", "dice"):
                 Q[k] = v
             elif kind == "line_slope_point" and k == "md":
@@ -524,9 +540,24 @@ def change_numbers(kind, P, seed):
                 Q[k] = _nudge(v, rnd)
         if kind == "derivative_expr" or kind == "limit_expr":
             Q["x0" if kind == "derivative_expr" else "a"] = P.get("x0" if kind == "derivative_expr" else "a")
-        if _valid(kind, Q):
+        if Q == P:
+            continue
+        ans = _answer(kind, Q)
+        if not ans:
+            continue
+        if symbolic:
             return Q
-    return dict(P)
+        if best is None or len(ans) < best[0]:
+            best = (len(ans), Q)
+    return best[1] if best else dict(P)
+
+
+def _answer(kind, P):
+    try:
+        sim = engine.Simulation({"id": "probe", "kind": kind, "q": ("", ""), "P": P}, "tr")
+        return sim.solution()["answer"].strip()
+    except Exception:
+        return ""
 
 
 def _valid(kind, P):
@@ -588,6 +619,20 @@ def _make_example(kind, P, file, page, course_key, n):
 # ══════════════════════════════════════════════════════════════════════════
 # Scan with a small on-disk cache (math content only — no book text)
 # ══════════════════════════════════════════════════════════════════════════
+
+_SIG = None
+
+
+def _kinds_signature():
+    """Önbellek anahtarına girer: şablonlar/sınıflandırıcılar değişince eski
+    sınıflandırmalar (ör. türev şablonu yokken 'fonksiyon grafiği' sayılan
+    örnekler) yeniden hesaplanır."""
+    global _SIG
+    if _SIG is None:
+        kinds = ",".join(sorted(engine.all_templates()))
+        _SIG = hashlib.sha1(f"scanner-v2|{kinds}".encode("utf-8")).hexdigest()[:10]
+    return _SIG
+
 
 def _cache_path():
     try:
@@ -665,9 +710,9 @@ def scan(path, course_key="", change=True, progress=None, cancelled=None):
             continue
         try:
             st = f.stat()
-            ck = f"{f}|{st.st_size}|{int(st.st_mtime)}"
+            ck = f"{_kinds_signature()}|{f}|{st.st_size}|{int(st.st_mtime)}"
         except Exception:
-            ck = str(f)
+            ck = f"{_kinds_signature()}|{f}"
         items = cache.get(ck)
         if items is None:
             items = [list(t) for t in extract_items(f)]

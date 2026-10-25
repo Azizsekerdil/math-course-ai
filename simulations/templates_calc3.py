@@ -1689,7 +1689,7 @@ EXAMPLES += [
 TEMPLATES["double_integral"] = {
     "course": "calc3",
     "title": ("Çift katlı integral: yüzey altındaki hacim", "Double integral: volume under a surface"),
-    "topics": ["double integral", "double integrals", "iterated integral", "iterated integrals",
+    "topics": ["triple integral", "triple integrals", "üç katlı integral", "double integral", "double integrals", "iterated integral", "iterated integrals",
                "fubini", "volume under a surface", "riemann sum in two variables", "midpoint rule",
                "integrals over rectangles", "average value of a function of two variables",
                "çift katlı integral", "iki katlı integral", "ardışık integral", "yinelemeli integral",
@@ -1959,7 +1959,7 @@ EXAMPLES += [
 TEMPLATES["vector_field"] = {
     "course": "calc3",
     "title": ("Vektör alanı: akış, diverjans ve rotasyonel", "Vector field: flow, divergence and curl"),
-    "topics": ["vector field", "vector fields", "divergence", "curl", "flow lines", "streamlines",
+    "topics": ["line integral", "line integrals", "green's theorem", "greens theorem", "eğrisel integral", "green teoremi", "vector field", "vector fields", "divergence", "curl", "flow lines", "streamlines",
                "conservative vector field", "potential function", "gradient field", "source and sink",
                "irrotational", "incompressible", "vektör alanı", "vektör alanları", "diverjans",
                "rotasyonel", "dönel", "akış çizgileri", "korunumlu alan", "potansiyel fonksiyonu",

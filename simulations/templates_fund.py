@@ -39,9 +39,32 @@ def _r(i, t0, t1):
     return min(1.0, max(0.0, (i - t0) / float(t1 - t0)))
 
 
+def _num(v):
+    try:
+        f = float(str(v).strip().replace(",", ".").replace("−", "-"))
+    except (TypeError, ValueError):
+        return None
+    if f != f or abs(f) > 10 ** 6:
+        return None
+    return f
+
+
+def _bad(P):
+    fa, fb = _num(P.get("a", 0)), _num(P.get("b", 0))
+    if fa is None or fb is None:
+        return ("Sayılar okunamadı (en fazla 10⁶ büyüklüğünde tam sayılar girin)",
+                "The numbers could not be read (use integers up to 10⁶ in size)")
+    if fa != int(fa) or fb != int(fb):
+        return ("Bu sayı doğrusu tam sayılar içindir; ondalıklı sayılar için ondalık işlemler simülasyonunu kullanın",
+                "This number line is for integers; use the decimal operations simulation for decimals")
+    return None
+
+
 def _parts(P):
-    a = int(round(float(P.get("a", 0))))
-    b = int(round(float(P.get("b", 0))))
+    if _bad(P) is not None:
+        a, b = 0, 0
+    else:
+        a, b = int(_num(P.get("a", 0))), int(_num(P.get("b", 0)))
     op = "-" if str(P.get("op", "+")).strip() in ("-", "−", "–") else "+"
     move = b if op == "+" else -b
     return a, b, op, move, a + move
@@ -62,6 +85,12 @@ def _nice(x):
 
 
 def solve(P):
+    msg = _bad(P)
+    if msg is not None:
+        sa, sb = str(P.get("a", "")), str(P.get("b", ""))
+        ex = f"{sa} {'−' if str(P.get('op', '+')).strip() in ('-', '−', '–') else '+'} {sb}"
+        return {"answer": msg, "steps": [(f"İfade: {ex}", f"Expression: {ex}"), msg],
+                "fmt": {"expr": ex, "aa": sa, "bb": sb}}
     a, b, op, move, r = _parts(P)
     ex = _expr(a, b, op)
     steps = [(f"Başlangıç: sayı doğrusunda {_s(a)} noktası", f"Start at {_s(a)} on the number line")]
@@ -98,6 +127,16 @@ def solve(P):
 
 def build(fig, P):
     tr = P.get("lang", "tr") == "tr"
+    msg = _bad(P)
+    if msg is not None:
+        ax0 = fig.add_subplot(111)
+        ax0.axis("off")
+        ax0.text(0.5, 0.5, msg[0] if tr else msg[1], transform=ax0.transAxes, ha="center", va="center",
+                 fontsize=13, color="#DC2626", wrap=True)
+
+        def upd0(i):
+            return []
+        return 60, upd0
     a, b, op, move, r = _parts(P)
     ex = _expr(a, b, op)
     n = abs(move)
@@ -246,14 +285,18 @@ def build(fig, P):
 
 
 def vary(P, rnd):
-    a0, b0, op, _, _ = _parts(P)
+    a0, b0, op, _, r0 = _parts(P)
     sa = -1 if a0 < 0 else 1
     sb = -1 if b0 < 0 else 1
-    while True:
+    for _ in range(300):
         a = sa * rnd.randint(1, 9)
         b = sb * rnd.randint(2, 9)
-        if b != a:
-            return {"a": a, "b": b, "op": op}
+        r = a + (b if op == "+" else -b)
+        # no zero result (trivial), keep the sign of the original result (e.g. crossing 0)
+        if r == 0 or (a, b) == (a0, b0) or (r0 != 0 and (r > 0) != (r0 > 0)):
+            continue
+        return {"a": a, "b": b, "op": op}
+    return {"a": 3, "b": -7, "op": "+"}
 ''',
 }
 EXAMPLES += [
@@ -283,8 +326,8 @@ TEMPLATES["fraction_add"] = {
     "topics": ["fractions", "adding fractions", "subtracting fractions", "common denominator",
                "least common denominator", "unlike denominators", "equivalent fractions",
                "simplifying fractions", "mixed numbers", "kesirler", "kesirlerde toplama",
-               "kesirlerde çıkarma", "payda eşitleme", "denk kesirler", "sadeleştirme",
-               "kesirlerle işlemler"],
+               "kesirlerde çıkarma", "payda eşitleme", "denk kesirler", "kesirlerde sadeleştirme",
+               "kesirleri sadeleştirme", "kesirlerle işlemler"],
     "code": r'''
 import math
 import numpy as np
@@ -301,6 +344,14 @@ def _f(v):
 def _nd(n, d):
     s = f"{abs(n)}/{d}"
     return ("−" + s) if n < 0 else s
+
+
+def _sn(v):
+    return str(v).replace("-", "−")
+
+
+def _pp(v):
+    return f"(−{abs(v)})" if v < 0 else str(v)
 
 
 def _tx(n, d):
@@ -327,8 +378,25 @@ def _sm(m):
     return m * m * (3 - 2 * m)
 
 
+def _val(v):
+    try:
+        f = float(str(v).strip().replace(",", ".").replace("−", "-"))
+    except (TypeError, ValueError):
+        return None
+    if f != f or abs(f) > 10 ** 6 or f != int(f):
+        return None
+    return int(f)
+
+
+def _bad(P):
+    if any(_val(P.get(k, 1)) is None for k in ("a", "b", "c", "d")):
+        return ("Pay ve paydalar tam sayı olmalı (en fazla 10⁶)",
+                "Numerators and denominators must be integers (up to 10⁶)")
+    return None
+
+
 def _parts(P):
-    a, b, c, d = (int(round(float(P.get(k, 1)))) for k in ("a", "b", "c", "d"))
+    a, b, c, d = ((_val(P.get(k, 1)) or 0) for k in ("a", "b", "c", "d"))
     op = "-" if str(P.get("op", "+")).strip() in ("-", "−", "–") else "+"
     if b < 0:
         a, b = -a, -b
@@ -358,8 +426,8 @@ def solve(P):
     a, b, c, d, op = _parts(P)
     ex = _expr(a, b, c, d, op)
     fmt = {"expr": ex, "f1": _nd(a, b), "f2": _nd(c, d)}
-    if b == 0 or d == 0:
-        msg = ("Payda 0 olamaz: kesir tanımsız", "A denominator cannot be 0: the fraction is undefined")
+    if _bad(P) is not None or b == 0 or d == 0:
+        msg = _bad(P) or ("Payda 0 olamaz: kesir tanımsız", "A denominator cannot be 0: the fraction is undefined")
         return {"answer": msg, "steps": [(f"İfade: {ex}", f"Expression: {ex}"), msg], "fmt": fmt}
     L, m1, m2, A, C, S, res, g = _calc(a, b, c, d, op)
     sym = "+" if op == "+" else "−"
@@ -376,12 +444,13 @@ def solve(P):
             if m_ == 1:
                 steps.append((f"{_nd(n_, d_)} kesrinin paydası zaten {L}", f"{_nd(n_, d_)} already has denominator {L}"))
             else:
-                steps.append((f"{_nd(n_, d_)} = ({n_}·{m_})/({d_}·{m_}) = {_nd(N_, L)}",
-                              f"{_nd(n_, d_)} = ({n_}·{m_})/({d_}·{m_}) = {_nd(N_, L)}"))
+                steps.append((f"{_nd(n_, d_)} = ({_sn(n_)}·{m_})/({d_}·{m_}) = {_nd(N_, L)}",
+                              f"{_nd(n_, d_)} = ({_sn(n_)}·{m_})/({d_}·{m_}) = {_nd(N_, L)}"))
+    c2 = _nd(C, L) if C >= 0 else "(" + _nd(C, L) + ")"
     steps.append((f"Payları {'topla' if op == '+' else 'çıkar'}, payda aynı kalır: {_nd(A, L)} {sym} "
-                   f"{_nd(C, L)} = ({A} {sym} {C})/{L} = {_nd(S, L)}",
+                   f"{c2} = ({_sn(A)} {sym} {_pp(C)})/{L} = {_nd(S, L)}",
                    f"{'Add' if op == '+' else 'Subtract'} the numerators, keep the denominator: "
-                   f"{_nd(A, L)} {sym} {_nd(C, L)} = ({A} {sym} {C})/{L} = {_nd(S, L)}"))
+                   f"{_nd(A, L)} {sym} {c2} = ({_sn(A)} {sym} {_pp(C)})/{L} = {_nd(S, L)}"))
     if S == 0:
         steps.append(("Sonuç 0", "The result is 0"))
     elif g > 1:
@@ -404,9 +473,10 @@ def build(fig, P):
     ax.axis("off")
     info = ax.text(0.01, 0.985, "", transform=ax.transAxes, va="top", fontsize=11,
                    bbox=dict(boxstyle="round", fc="white", ec="#D1D5DB"))
-    if b == 0 or d == 0:
-        ax.text(0.5, 0.5, "Payda 0 olamaz!" if tr else "A denominator cannot be 0!", ha="center",
-                fontsize=18, color="#DC2626", transform=ax.transAxes)
+    if _bad(P) is not None or b == 0 or d == 0:
+        msg = _bad(P) or ("Payda 0 olamaz!", "A denominator cannot be 0!")
+        ax.text(0.5, 0.5, msg[0] if tr else msg[1], ha="center",
+                fontsize=16, color="#DC2626", transform=ax.transAxes)
 
         def upd0(i):
             info.set_text(_expr(a, b, c, d, op))
@@ -491,11 +561,12 @@ def build(fig, P):
     else:
         info2 = (f"2) EKOK({b}, {d}) = {L}: her bütünü {L} eşit parçaya böl",
                  f"2) lcm({b}, {d}) = {L}: cut every whole into {L} equal pieces")
-    info3 = ((f"3) {A} mavi parça ile {C} turuncu parçayı birleştir" if op == "+" else
-              f"3) {A} mavi parçadan {C} parçayı çıkar (taralı)"),
-             (f"3) Put the {A} blue pieces and {C} orange pieces together" if op == "+" else
-              f"3) Take {C} pieces away from the {A} blue pieces (hatched)"))
-    info4 = (f"4) {A} {sym} {C} = {S} parça  ⇒  {_nd(S, L)}", f"4) {A} {sym} {C} = {S} pieces  ⇒  {_nd(S, L)}")
+    info3 = ((f"3) {_sn(A)} mavi parça ile {_sn(C)} turuncu parçayı birleştir" if op == "+" else
+              f"3) {_sn(A)} mavi parçadan {_sn(C)} parçayı çıkar (taralı)"),
+             (f"3) Put the {_sn(A)} blue pieces and {_sn(C)} orange pieces together" if op == "+" else
+              f"3) Take {_sn(C)} pieces away from the {_sn(A)} blue pieces (hatched)"))
+    info4 = (f"4) {_sn(A)} {sym} {_pp(C)} = {_sn(S)} parça  ⇒  {_nd(S, L)}",
+             f"4) {_sn(A)} {sym} {_pp(C)} = {_sn(S)} pieces  ⇒  {_nd(S, L)}")
     if S != 0 and g > 1:
         info5 = (f"5) Sadeleştir (÷{g}): {_nd(S, L)} = {_f(res)}", f"5) Simplify (÷{g}): {_nd(S, L)} = {_f(res)}")
     else:
@@ -555,8 +626,12 @@ def build(fig, P):
 
 def vary(P, rnd):
     a0, b0, c0, d0, op = _parts(P)
+    simp0 = False
+    if b0 and d0:
+        S0, g0 = _calc(a0, b0, c0, d0, op)[5], _calc(a0, b0, c0, d0, op)[7]
+        simp0 = S0 != 0 and g0 > 1
     dens = [2, 3, 4, 5, 6, 8, 10, 12]
-    while True:
+    for attempt in range(600):
         b, d = rnd.choice(dens), rnd.choice(dens)
         if b == d or b * d // math.gcd(b, d) > 24:
             continue
@@ -565,7 +640,14 @@ def vary(P, rnd):
             continue
         if op == "-" and Fraction(a, b) <= Fraction(c, d):
             continue
+        if (a, b, c, d) == (a0, b0, c0, d0):
+            continue
+        S, g = _calc(a, b, c, d, op)[5], _calc(a, b, c, d, op)[7]
+        # keep the character of the original: needs simplifying or not
+        if attempt < 500 and (S != 0 and g > 1) != simp0:
+            continue
         return {"a": a, "b": b, "c": c, "d": d, "op": op}
+    return {"a": 2, "b": 3, "c": 1, "d": 4, "op": op}
 ''',
 }
 EXAMPLES += [
@@ -931,7 +1013,7 @@ def _apply(op, x, y):
 
 
 def _run(expr, tr):
-    R = {"lines": [], "red": [], "green": [], "ops": [], "cats": [], "vals": [], "err": None,
+    R = {"lines": [], "red": [], "green": [], "ops": [], "cats": [], "vals": [], "args": [], "err": None,
          "perr": False, "val": None, "dec": False}
     raw = _clean(expr)
     try:
@@ -976,6 +1058,7 @@ def _run(expr, tr):
             break
         R["ops"].append(f"{desc} = {_num(val, dec, tr)}")
         R["vals"].append(val)
+        R["args"].append((op, x, y))
         node[:] = ["n", val, dec]
         track[0] = node
         _norm(tree, track)
@@ -1240,6 +1323,23 @@ def build(fig, P):
     return N, update
 
 
+_NICE = (10, 20, 50, 100, 200, 500, 1000, 2000, 5000)
+
+
+def _trivial(R):
+    # a step that does nothing interesting: x·1, x÷1, 1ⁿ, a zero operand or a zero result
+    for (op, x, y), v in zip(R["args"], R["vals"]):
+        if x == 0 or y == 0 or v == 0:
+            return True
+        if op in "*/" and abs(y) == 1 or op == "*" and abs(x) == 1 or op == "^" and abs(x) == 1:
+            return True
+    return False
+
+
+def _nums(toks):
+    return [t[1] for t in toks if t[0] == "n"] if toks else []
+
+
 def vary(P, rnd):
     src = _clean(P.get("expr", ""))
     try:
@@ -1248,6 +1348,7 @@ def vary(P, rnd):
         toks = None
     R0 = _run(src, False)
     v0 = R0["val"] if R0["err"] is None else None
+    triv0 = R0["err"] is not None or _trivial(R0)
     lim = max(200, 2 * abs(v0)) if v0 is not None else 999
     forms = ["{a} + {b}*({c} - {d})^2 / {e}", "({a} + {b})*{c} - {d}^2", "{a} - {b}*{c} + {d}*{e}",
              "({a} - {b})^2 + {c}*{d}", "{a}*({b} + {c}) - {d}*{e}", "{a}^2 - ({b} + {c}*{d})"]
@@ -1261,6 +1362,12 @@ def vary(P, rnd):
                         v = rnd.choice([2, 2, 3])
                     elif prev is not None and prev[0] == "o" and prev[1] == "/":
                         v = rnd.randint(2, 9)
+                    elif abs(t[1]) in _NICE:
+                        # round amounts (a banknote, 100 %, ...) stay round
+                        v = rnd.choice([m for m in _NICE if abs(t[1]) / 2.5 <= m <= abs(t[1]) * 2.5])
+                    elif abs(t[1]) >= 13 and abs(t[1]) % 10 == 0:
+                        tv = int(abs(t[1]))
+                        v = 10 * rnd.randint(max(2, int(tv * 0.06)), max(3, int(tv * 0.15)))
                     elif abs(t[1]) >= 13:
                         lo_ = max(2, int(abs(t[1]) * 0.6))
                         v = rnd.randint(lo_, max(lo_ + 1, int(abs(t[1]) * 1.5)))
@@ -1279,8 +1386,13 @@ def vary(P, rnd):
             vals = {k: rnd.randint(1, 12) for k in "abcde"}
             cand = rnd.choice(forms).format_map(vals)
         R = _run(cand, False)
+        try:
+            same = _nums(_tokens(_clean(cand))) == _nums(toks)
+        except _Err:
+            same = False
         if (R["err"] is None and R["val"] is not None and len(R["ops"]) >= 2 and abs(R["val"]) <= lim
-                and all(v.denominator == 1 for v in R["vals"]) and cand != src
+                and all(v.denominator == 1 for v in R["vals"]) and cand != src and not same
+                and (triv0 or attempt >= 360 or not _trivial(R))
                 and (v0 is None or attempt >= 300 or ((R["val"] > 0) == (v0 > 0) and (R["val"] < 0) == (v0 < 0)))):
             return {"expr": cand}
     return {"expr": "3 + 4*(6 - 2)^2 / 8"}
@@ -1321,7 +1433,7 @@ def _fr(v):
         return Fraction(float(v)).limit_denominator(10 ** 6)
 
 
-def _n(v, tr=True):
+def _n(v, tr=True, dg=2):
     v = Fraction(v)
     if v.denominator == 1:
         s = str(v.numerator)
@@ -1336,14 +1448,18 @@ def _n(v, tr=True):
             t = str(n).rjust(k + 1, "0")
             s = ("-" if v < 0 else "") + t[:-k] + "." + t[-k:]
         else:
-            s = "≈" + f"{float(v):.2f}".rstrip("0").rstrip(".")
+            s = "≈" + f"{float(v):.{dg}f}".rstrip("0").rstrip(".")
     s = s.replace("-", "−")
     return s.replace(".", ",") if tr else s
 
 
 def _pc(p, tr=True):
     sg = "−" if p < 0 else ""
-    return (sg + "%" + _n(abs(p), True)) if tr else (sg + _n(abs(p), False) + "%")
+    s = _n(abs(p), tr)
+    ap = ""
+    if s.startswith("≈"):
+        ap, s = "≈", s[1:]
+    return ap + ((sg + "%" + s) if tr else (sg + s + "%"))
 
 
 _ONES = {"0": "ı", "1": "i", "2": "si", "3": "ü", "4": "ü", "5": "i", "6": "sı", "7": "si", "8": "i", "9": "u"}
@@ -1383,7 +1499,7 @@ TEMPLATES["percent_of"] = {
     "title": ("Bir sayının yüzdesi", "Percent of a number"),
     "topics": ["percent", "percents", "percentage", "percent of a number", "finding a percent",
                "hundred grid", "yüzde", "yüzdeler", "yüzde hesaplama", "bir sayının yüzdesi",
-               "yüzdelik"],
+               "yüzde problemleri"],
     "code": _PCT_HELPERS + r'''
 
 
@@ -1533,15 +1649,32 @@ def build(fig, P):
 
 
 def vary(P, rnd):
-    p0 = _fr(P.get("pct", 10))
+    try:
+        p0, T0 = _fr(P.get("pct", 10)), _fr(P.get("total", 100))
+    except (TypeError, ValueError):
+        p0, T0 = Fraction(30), Fraction(70)
     if p0 > 100:
-        pc = rnd.choice([110, 120, 125, 150, 175, 200])
+        pcs = [110, 120, 125, 150, 175, 200]
+    elif p0.denominator != 1:
+        pcs = [2.5, 7.5, 12.5, 17.5, 22.5, 37.5, 62.5, 87.5]
     else:
-        pc = rnd.choice([5, 10, 15, 20, 25, 30, 35, 40, 45, 60, 70, 75, 80, 90])
-    step = 100 // math.gcd(pc, 100)
-    lo_k = max(1, -(-20 // step))
-    hi_k = max(lo_k, min(600 // step, lo_k + 30))
-    return {"pct": pc, "total": step * rnd.randint(lo_k, hi_k)}
+        pcs = [5, 10, 15, 20, 25, 30, 35, 40, 45, 60, 70, 75, 80, 90]
+    # keep the size of the story (class size, bill, tip rate ...) close to the original
+    near = [c for c in pcs if p0 > 0 and p0 / Fraction(5, 2) <= Fraction(str(c)) <= p0 * Fraction(5, 2)]
+    pcs = near if len(near) >= 3 else pcs
+    T0 = T0 if T0 >= 10 else Fraction(80)
+    lo_T, hi_T = max(10, int(T0 / 2)), max(20, int(T0 * Fraction(8, 5)))
+    for _ in range(300):
+        pc = rnd.choice(pcs)
+        step = (Fraction(str(pc)) / 100).denominator
+        ks = [k for k in range(max(1, -(-lo_T // step)), hi_T // step + 1)]
+        if not ks:
+            continue
+        T = step * rnd.choice(ks)
+        if Fraction(str(pc)) == p0 and T == T0:
+            continue
+        return {"pct": pc, "total": T}
+    return {"pct": 30, "total": 70}
 ''',
 }
 EXAMPLES += [
@@ -1554,7 +1687,7 @@ EXAMPLES += [
      "q": ("{tt} kişilik bir sınıfta öğrencilerin {ppi} gözlük takıyor. Kaç öğrenci gözlük takıyor?",
            "In a class of {tt} students, {pp} wear glasses. How many students wear glasses?"),
      "P": {"pct": 35, "total": 40}},
-    {"id": "fund-pctof-3", "kind": "percent_of", "topics": ["tip", "bahşiş", "decimal percent"],
+    {"id": "fund-pctof-3", "kind": "percent_of", "topics": ["tipping", "restaurant tip", "bahşiş", "decimal percent"],
      "title": ("Ondalıklı yüzde: bahşiş", "A decimal percent: the tip"),
      "q": ("{tt} TL'lik bir hesaba {pp} bahşiş bırakılacak. Bahşiş kaç TL'dir?",
            "A diner leaves a {pp} tip on a bill of {tt}. How large is the tip?"),
@@ -1567,7 +1700,8 @@ TEMPLATES["percent_change"] = {
     "title": ("Yüzde değişim: artış ve azalış", "Percent change: increase and decrease"),
     "topics": ["percent change", "percent increase", "percent decrease", "discount", "markup",
                "sale price", "percent of change", "yüzde değişim", "yüzde artış", "yüzde azalış",
-               "indirim", "zam", "kâr zarar", "kar zarar", "satış fiyatı"],
+               "indirim", "zam oranı", "zam ve indirim", "zamlı fiyat", "kâr zarar", "kar zarar",
+               "satış fiyatı"],
     "code": _PCT_HELPERS + r'''
 
 
@@ -1595,8 +1729,11 @@ def _sg(v, tr):
 def solve(P):
     o, nw, ch, pc = _calc(P)
     fmt = {"oo": (_n(o, True), _n(o, False)), "nn": (_n(nw, True), _n(nw, False))}
-    if ch is None:
-        msg = ("Başlangıç değeri 0 olduğundan yüzde değişim tanımsız", "The original value is 0, so percent change is undefined")
+    if ch is None or o < 0:
+        msg = (("Başlangıç değeri 0 olduğundan yüzde değişim tanımsız", "The original value is 0, so percent change is undefined")
+               if ch is None else
+               ("Başlangıç değeri negatif: yüzde artış/azalış bu durumda anlamlı değil (pozitif değerler girin)",
+                "The original value is negative: percent increase/decrease is not meaningful (use positive values)"))
         return {"answer": msg, "steps": [("Yüzde değişim = değişim / eski × 100", "Percent change = change / original × 100"), msg],
                 "fmt": fmt}
     ratio = ch / o
@@ -1604,16 +1741,16 @@ def solve(P):
         (f"Değişim = yeni − eski = {_n(nw, True)} − {_n(o, True)} = {_sg(ch, True)}",
          f"Change = new − original = {_n(nw, False)} − {_n(o, False)} = {_sg(ch, False)}"),
         ("Yüzde değişim = (değişim ÷ eski değer) × 100", "Percent change = (change ÷ original value) × 100"),
-        (f"= ({_sg(ch, True)} ÷ {_n(o, True)}) × 100 = {_n(ratio, True)} × 100 = {_pc(pc, True)}",
-         f"= ({_sg(ch, False)} ÷ {_n(o, False)}) × 100 = {_n(ratio, False)} × 100 = {_pc(pc, False)}"),
+        (f"= ({_sg(ch, True)} ÷ {_n(o, True)}) × 100 = {_n(ratio, True, 4)} × 100 = {_pc(pc, True)}",
+         f"= ({_sg(ch, False)} ÷ {_n(o, False)}) × 100 = {_n(ratio, False, 4)} × 100 = {_pc(pc, False)}"),
     ]
     if pc > 0:
         steps.append(("Pozitif değişim → artış (zam)", "Positive change → increase (markup)"))
     elif pc < 0:
         steps.append(("Negatif değişim → azalış (indirim)", "Negative change → decrease (discount)"))
     mult = 1 + ratio
-    steps.append((f"Kontrol: {_n(o, True)} × {_n(mult, True)} = {_n(o * mult, True)} ✓",
-                   f"Check: {_n(o, False)} × {_n(mult, False)} = {_n(o * mult, False)} ✓"))
+    steps.append((f"Kontrol: {_n(o, True)} × {_n(mult, True, 4)} = {_n(o * mult, True)} ✓",
+                   f"Check: {_n(o, False)} × {_n(mult, False, 4)} = {_n(o * mult, False)} ✓"))
     ans = (f"{_pc(abs(pc), True)} {_word(pc, True)}", f"{_pc(abs(pc), False)} {_word(pc, False)}")
     fmt["pcs"] = ans
     return {"answer": ans, "steps": steps, "fmt": fmt}
@@ -1628,7 +1765,7 @@ def build(fig, P):
                    bbox=dict(boxstyle="round", fc="white", ec="#D1D5DB"))
     if ch is None or o < 0 or nw < 0:
         ax.axis("off")
-        ax.text(0.5, 0.5, ("Başlangıç değeri pozitif olmalı" if tr else "The original value must be positive"),
+        ax.text(0.5, 0.5, ("Eski ve yeni değer pozitif olmalı" if tr else "The original and new values must be positive"),
                 transform=ax.transAxes, ha="center", fontsize=16, color="#DC2626")
 
         def upd0(i):
@@ -1677,9 +1814,9 @@ def build(fig, P):
                   color="#111827") for k in range(3)]
     flines = [((f"Değişim = {_n(nw, True)} − {_n(o, True)} = {_sg(ch, True)}"),
                (f"Change = {_n(nw, False)} − {_n(o, False)} = {_sg(ch, False)}")),
-              ((f"{_sg(ch, True)} ÷ {_n(o, True)} = {_n(ratio, True)}"),
-               (f"{_sg(ch, False)} ÷ {_n(o, False)} = {_n(ratio, False)}")),
-              ((f"{_n(ratio, True)} × 100 = {_pc(pc, True)}"), (f"{_n(ratio, False)} × 100 = {_pc(pc, False)}"))]
+              ((f"{_sg(ch, True)} ÷ {_n(o, True)} = {_n(ratio, True, 4)}"),
+               (f"{_sg(ch, False)} ÷ {_n(o, False)} = {_n(ratio, False, 4)}")),
+              ((f"{_n(ratio, True, 4)} × 100 = {_pc(pc, True)}"), (f"{_n(ratio, False, 4)} × 100 = {_pc(pc, False)}"))]
     for k, t in enumerate(fl):
         t.set_text(flines[k][0] if tr else flines[k][1])
     big = ax.text(0.97, 0.56, (f"{_pc(abs(pc), True)} {_word(pc, True)}" if tr else
@@ -1758,12 +1895,13 @@ def vary(P, rnd):
     sign = 1 if n0 >= o0 else -1
     olds = [40, 50, 60, 80, 120, 150, 200, 240, 250, 400, 500]
     pcs = [10, 20, 25, 30, 40, 50, 60, 75] if sign > 0 else [10, 15, 20, 25, 30, 40, 50]
-    while True:
+    for _ in range(300):
         o = rnd.choice(olds)
         p = rnd.choice(pcs)
         nw = Fraction(o * (100 + sign * p), 100)
-        if nw.denominator == 1:
+        if nw.denominator == 1 and (o, nw) != (o0, n0):
             return {"old": o, "new": int(nw)}
+    return {"old": 80, "new": 100 if sign > 0 else 60}
 ''',
 }
 EXAMPLES += [
@@ -1790,9 +1928,9 @@ TEMPLATES["exponent_power"] = {
     "course": "fund",
     "title": ("Üslü sayılar: tekrarlı çarpma, sıfır ve negatif üs",
               "Powers: repeated multiplication, zero and negative exponents"),
-    "topics": ["exponents", "powers", "exponent rules", "negative exponents", "zero exponent",
-               "repeated multiplication", "powers of ten", "üslü sayılar", "üslü ifadeler", "üs",
-               "kuvvet", "negatif üs", "sıfırıncı kuvvet"],
+    "topics": ["scientific notation", "bilimsel gösterim", "exponents", "powers", "exponent rules", "negative exponents", "zero exponent",
+               "repeated multiplication", "powers of ten", "üslü sayılar", "üslü ifadeler", "üs alma",
+               "üs kuralları", "bir sayının kuvveti", "kuvvetler", "negatif üs", "sıfırıncı kuvvet"],
     "code": r'''
 import math
 import numpy as np
@@ -1807,11 +1945,18 @@ def _sup(k):
     return "".join(_SUP[ch] for ch in str(int(k)))
 
 
-def _f(v):
+def _f(v, short=False):
     v = Fraction(v)
     s = str(v.numerator) if v.denominator == 1 else f"{v.numerator}/{v.denominator}"
-    if len(s) > 16:
-        s = f"{float(v):.4g}"
+    if len(s) > (16 if short else 40):
+        fv = abs(float(v)) if abs(v.numerator) < 10 ** 300 else 0.0
+        if fv == 0.0 or fv == float("inf"):
+            s = "≈ (çok büyük / very large)" if v.denominator == 1 else "≈ 0"
+        else:
+            e = int(math.floor(math.log10(fv)))
+            m = fv / 10 ** e
+            s = ("≈ " + ("-" if v < 0 else "") + f"{m:.3f}".rstrip("0").rstrip(".") + " × 10" +
+                 "".join(_SUP[ch] for ch in str(e)))
     return s.replace("-", "−")
 
 
@@ -1828,11 +1973,25 @@ def _dec(v, tr):
 
 def _parts(P):
     try:
-        b = Fraction(str(P.get("base", 2)))
-    except (ValueError, ZeroDivisionError):
-        b = Fraction(2)
-    n = int(round(float(P.get("n", 1))))
+        b = Fraction(str(P.get("base", 2)).strip().replace(",", ".").replace("−", "-"))
+    except (ValueError, ZeroDivisionError, TypeError):
+        b = None
+    try:
+        fn = float(str(P.get("n", 1)).strip().replace("−", "-"))
+        n = int(fn) if fn == int(fn) else None
+    except (ValueError, TypeError, OverflowError):
+        n = None
     return b, n
+
+
+def _bad(P):
+    b, n = _parts(P)
+    if b is None:
+        return ("Taban okunamadı (örnek: 2, −3, 1/2, 0.5)", "The base could not be read (e.g. 2, −3, 1/2, 0.5)")
+    if n is None:
+        return ("Üs bir tam sayı olmalı (bu simülasyon tam sayı üsler içindir)",
+                "The exponent must be an integer (this simulation is for integer exponents)")
+    return None
 
 
 def _B(b):
@@ -1845,6 +2004,10 @@ def _r(i, t0, t1):
 
 
 def solve(P):
+    if _bad(P) is not None:
+        msg = _bad(P)
+        raw = f"{P.get('base', '')}^{P.get('n', '')}"
+        return {"answer": msg, "steps": [(f"İfade: {raw}", f"Expression: {raw}"), msg], "fmt": {"pw": raw}}
     b, n = _parts(P)
     B = _B(b)
     pw = f"{B}{_sup(n)}"
@@ -1896,12 +2059,20 @@ def solve(P):
 
 def build(fig, P):
     tr = P.get("lang", "tr") == "tr"
-    b, n = _parts(P)
-    B = _B(b)
     ax = fig.add_subplot(111)
     fig.subplots_adjust(left=0.09, right=0.98, top=0.9, bottom=0.1)
     info = ax.text(0.01, 0.985, "", transform=ax.transAxes, va="top", fontsize=11,
                    bbox=dict(boxstyle="round", fc="white", ec="#D1D5DB"), zorder=10)
+    if _bad(P) is not None:
+        ax.axis("off")
+        ax.text(0.5, 0.5, _bad(P)[0] if tr else _bad(P)[1], transform=ax.transAxes, ha="center",
+                fontsize=14, color="#DC2626")
+
+        def upd_bad(i):
+            return []
+        return 60, upd_bad
+    b, n = _parts(P)
+    B = _B(b)
     if (b == 0 and n < 0) or abs(n) > 300:
         ax.axis("off")
         ax.text(0.5, 0.5, f"{B}{_sup(n)}: " + ("tanımsız / çok büyük" if tr else "undefined / too large"),
@@ -1939,7 +2110,7 @@ def build(fig, P):
                        alpha=0.85)
         ax.add_patch(rc)
         bars.append(rc)
-        labs.append(ax.text(j, v + (vmax * 0.03 if v >= 0 else -vmax * 0.03), _f(vals[j]), ha="center",
+        labs.append(ax.text(j, v + (vmax * 0.03 if v >= 0 else -vmax * 0.03), _f(vals[j], True), ha="center",
                             va="bottom" if v >= 0 else "top", fontsize=fsl, fontweight="bold", alpha=0,
                             color=colr))
     ops = []
@@ -1961,12 +2132,12 @@ def build(fig, P):
         if n > 0:
             m = k
             fac = " × ".join([B] * m) if m <= 6 else f"{B} × {B} × … × {B} ({m} {'kez' if tr else 'times'})"
-            return f"{B}{_sup(k)} = {fac} = {_f(vals[j])}"
+            return f"{B}{_sup(k)} = {fac} = {_f(vals[j], True)}"
         if k < 0:
-            return f"{B}{_sup(k)} = 1 / {B}{_sup(-k)} = {_f(vals[j])}"
+            return f"{B}{_sup(k)} = 1 / {B}{_sup(-k)} = {_f(vals[j], True)}"
         if k == 0:
             return f"{B}⁰ = {B}¹ ÷ {B} = 1"
-        return f"{B}{_sup(k)} = {_f(vals[j])}"
+        return f"{B}{_sup(k)} = {_f(vals[j], True)}"
 
     def update(i):
         shown = -1
@@ -2005,17 +2176,26 @@ def build(fig, P):
 
 def vary(P, rnd):
     b0, n0 = _parts(P)
-    bases = [-2, -3] if b0 < 0 else [2, 3, 4, 5, 10]
-    b = rnd.choice(bases)
-    if n0 > 0:
-        top = max(2, int(math.floor(math.log(1000) / math.log(abs(b)))))
-        n = rnd.randint(2, min(top, 7))
-    elif n0 == 0:
-        n = 0
+    b0 = Fraction(2) if b0 is None else b0
+    n0 = 3 if n0 is None else n0
+    if b0 < 0:
+        bases = [-2, -3]
     else:
-        top = max(1, int(math.floor(math.log(1000) / math.log(abs(b)))))
-        n = -rnd.randint(1, min(3, top))
-    return {"base": b, "n": n}
+        # stay close to the original base (a bacterium splits into 2 or 3, not 10)
+        bases = [c for c in (2, 3, 4, 5, 10) if abs(c - abs(b0)) <= 2] or [2, 3, 4, 5]
+    for _ in range(100):
+        b = rnd.choice(bases)
+        if n0 > 0:
+            top = max(2, int(math.floor(math.log(1000.5) / math.log(abs(b)))))
+            n = rnd.randint(2, min(top, 7))
+        elif n0 == 0:
+            n = 0
+        else:
+            top = max(1, int(math.floor(math.log(1000.5) / math.log(abs(b)))))
+            n = -rnd.randint(1, min(3, top))
+        if (b, n) != (b0, n0):
+            return {"base": b, "n": n}
+    return {"base": 2, "n": 5 if n0 > 0 else (-3 if n0 < 0 else 0)}
 ''',
 }
 EXAMPLES += [
@@ -2023,7 +2203,7 @@ EXAMPLES += [
      "title": ("Tekrarlı çarpma olarak üs", "A power as repeated multiplication"),
      "q": ("{pw} değerini tekrarlı çarpma ile hesapla.", "Evaluate {pw} as repeated multiplication."),
      "P": {"base": 2, "n": 5}},
-    {"id": "fund-pow-2", "kind": "exponent_power", "topics": ["growth", "bacteria", "büyüme", "word problem"],
+    {"id": "fund-pow-2", "kind": "exponent_power", "topics": ["bacteria", "bakteri", "word problem"],
      "title": ("Sözel problem: bakteri çoğalması", "Word problem: growing bacteria"),
      "q": ("Bir kültürde her bakteri bir saat içinde bölünerek {base} bakteri oluyor. Tek bakteriyle "
            "başlanırsa {n} saat sonra kaç bakteri olur? ({pw})",
@@ -2041,9 +2221,10 @@ EXAMPLES += [
 TEMPLATES["ratio_proportion"] = {
     "course": "fund",
     "title": ("Oran ve orantı (çift sayı doğrusu)", "Ratios and proportions (double number line)"),
-    "topics": ["ratio", "ratios", "proportion", "proportions", "proportional reasoning", "rates",
-               "unit rate", "scale drawing", "scale factor", "cross multiplication",
-               "oran", "orantı", "oran orantı", "doğru orantı", "birim oran", "ölçek", "içler dışlar"],
+    "topics": ["ratios", "ratio and proportion", "proportion", "proportions", "proportional reasoning",
+               "unit rate", "scale drawing", "cross multiplication",
+               "oranlar", "orantı", "oran orantı", "oran ve orantı", "doğru orantı", "birim oran", "ölçek",
+               "içler dışlar"],
     "code": r'''
 import math
 import numpy as np
@@ -2258,7 +2439,12 @@ def build(fig, P):
 
 
 def vary(P, rnd):
-    while True:
+    try:
+        a0, b0, c0 = _fr(P.get("a", 1)), _fr(P.get("b", 1)), _fr(P.get("c", 1))
+    except (TypeError, ValueError):
+        a0 = b0 = c0 = Fraction(0)
+    shaped = a0 > 0 and b0 > 0 and c0 > 0
+    for attempt in range(600):
         p = rnd.choice([1, 1, 2, 3])
         q = rnd.randint(2, 9)
         if q == p or math.gcd(p, q) != 1:
@@ -2266,12 +2452,29 @@ def vary(P, rnd):
         s, t = rnd.randint(1, 5), rnd.randint(2, 8)
         if s == t:
             continue
-        out = {"a": p * s, "b": p * t, "c": q * s}
+        a, b, c = p * s, p * t, q * s
+        if a == c or (a, b, c) == (a0, b0, c0):
+            continue
+        # keep the story's shape: which quantity is larger and roughly how large (2 cups -> 15 cookies,
+        # never 10 cups -> 4 cookies)
+        if shaped and attempt < 500:
+            if (b > a) != (b0 > a0) or (c > a) != (c0 > a0):
+                continue
+            if not all(v0 / 4 <= v <= v0 * 4 for v, v0 in ((a, a0), (b, b0), (c, c0))):
+                continue
+            rb, rc = Fraction(b, a) / (b0 / a0), Fraction(c, a) / (c0 / a0)
+            if not (Fraction(2, 5) <= rb <= Fraction(5, 2) and Fraction(2, 5) <= rc <= Fraction(5, 2)):
+                continue
+        out = {"a": a, "b": b, "c": c}
         for key in ("ua", "ub"):
             if key in P:
                 out[key] = P[key]
-        if out["a"] != out["c"]:
-            return out
+        return out
+    out = {"a": 3, "b": 5, "c": 12}
+    for key in ("ua", "ub"):
+        if key in P:
+            out[key] = P[key]
+    return out
 ''',
 }
 EXAMPLES += [
@@ -2297,7 +2500,7 @@ TEMPLATES["gcd_lcm"] = {
     "course": "fund",
     "title": ("EBOB ve EKOK (Öklid algoritması ve katlar)", "GCD and LCM (Euclid's algorithm and multiples)"),
     "topics": ["gcd", "gcf", "greatest common factor", "greatest common divisor", "lcm",
-               "least common multiple", "euclidean algorithm", "factors and multiples", "common factors",
+               "least common multiple", "euclidean algorithm", "factors and multiples",
                "ebob", "ekok", "obeb", "okek", "en büyük ortak bölen", "en küçük ortak kat",
                "bölünebilme", "ortak bölen", "ortak kat"],
     "code": r'''
@@ -2310,10 +2513,34 @@ def _r(i, t0, t1):
     return min(1.0, max(0.0, (i - t0) / float(t1 - t0)))
 
 
+def _int(v):
+    try:
+        f = float(str(v).strip().replace(",", ".").replace("−", "-"))
+    except (TypeError, ValueError):
+        return None
+    if f != f or abs(f) > 10 ** 9 or f != int(f):
+        return None
+    return abs(int(f))
+
+
+def _bad(P):
+    if _int(P.get("a", 0)) is None or _int(P.get("b", 0)) is None:
+        return ("EBOB ve EKOK tam sayılar için tanımlıdır (en fazla 10⁹)",
+                "GCD and LCM are defined for integers (up to 10⁹)")
+    return None
+
+
 def _parts(P):
-    a = abs(int(round(float(P.get("a", 0)))))
-    b = abs(int(round(float(P.get("b", 0)))))
-    return a, b
+    return _int(P.get("a", 0)) or 0, _int(P.get("b", 0)) or 0
+
+
+def _unit(P, tr):
+    u = P.get("unit")
+    if isinstance(u, (list, tuple)) and len(u) == 2:
+        return " " + str(u[0] if tr else u[1])
+    if isinstance(u, str) and u:
+        return " " + u
+    return ""
 
 
 def _euclid(a, b):
@@ -2327,6 +2554,9 @@ def _euclid(a, b):
 
 
 def solve(P):
+    if _bad(P) is not None:
+        return {"answer": _bad(P), "steps": [(f"a = {P.get('a')}, b = {P.get('b')}",
+                                               f"a = {P.get('a')}, b = {P.get('b')}"), _bad(P)], "fmt": {}}
     a, b = _parts(P)
     if a == 0 and b == 0:
         msg = ("EBOB(0, 0) tanımsızdır", "gcd(0, 0) is undefined")
@@ -2352,8 +2582,19 @@ def solve(P):
     steps.append((f"EKOK = a·b ÷ EBOB = {a}·{b} ÷ {g} = {l}", f"lcm = a·b ÷ gcd = {a}·{b} ÷ {g} = {l}"))
     steps.append((f"Kontrol: EBOB × EKOK = {g} × {l} = {g * l} = {a} × {b} ✓",
                   f"Check: gcd × lcm = {g} × {l} = {g * l} = {a} × {b} ✓"))
-    return {"answer": (f"EBOB = {g}, EKOK = {l}", f"GCD = {g}, LCM = {l}"), "steps": steps,
-            "fmt": {"g": g, "l": l}}
+    ask = str(P.get("ask", "")).lower()
+    ut, ue = _unit(P, True), _unit(P, False)
+    if ask == "lcm":
+        steps.append((f"Soru ortak katı (EKOK) soruyor → cevap: {l}{ut}",
+                      f"The question asks for the common multiple (LCM) → answer: {l}{ue}"))
+        ans = (f"EKOK({a}, {b}) = {l}{ut}  (EBOB = {g})", f"LCM({a}, {b}) = {l}{ue}  (GCD = {g})")
+    elif ask == "gcd":
+        steps.append((f"Soru ortak böleni (EBOB) soruyor → cevap: {g}{ut}",
+                      f"The question asks for the common divisor (GCD) → answer: {g}{ue}"))
+        ans = (f"EBOB({a}, {b}) = {g}{ut}  (EKOK = {l})", f"GCD({a}, {b}) = {g}{ue}  (LCM = {l})")
+    else:
+        ans = (f"EBOB = {g}, EKOK = {l}", f"GCD = {g}, LCM = {l}")
+    return {"answer": ans, "steps": steps, "fmt": {"g": g, "l": l}}
 
 
 def build(fig, P):
@@ -2369,7 +2610,7 @@ def build(fig, P):
     axr = fig.add_subplot(gs[1, 1])
     axl.axis("off")
     axr.axis("off")
-    if a == 0 or b == 0:
+    if _bad(P) is not None or a == 0 or b == 0:
         info.set_text("EBOB/EKOK için iki pozitif tam sayı gerekir" if tr else "GCD/LCM needs two positive integers")
 
         def upd0(i):
@@ -2446,7 +2687,8 @@ def build(fig, P):
         for k, v in enumerate(vals):
             if k % step == 0 or v == l:
                 t = axr.text(v, yy + off, str(v), ha="center", va="bottom" if off > 0 else "top", fontsize=9,
-                             color=col)
+                             color=col, zorder=6,
+                             bbox=dict(boxstyle="round,pad=0.12", fc="white", ec="none") if v == l else None)
                 labs.append((v, t))
     lcm_line, = axr.plot([l, l], [yb - 0.55, ya + 0.6], ls="--", color="#16A34A", lw=2.2)
     lcm_lab = axr.text(l, ya + 0.65, ("EKOK = " if tr else "LCM = ") + str(l), ha="center", va="bottom",
@@ -2492,7 +2734,7 @@ def build(fig, P):
         lcm_line.set_visible(i >= M1)
         lcm_lab.set_visible(i >= M1)
         if i < T0:
-            info.set_text((f"1) {W} × {H} dikdörtgeni: içine sığan en büyük kareleri yerleştir") if tr else
+            info.set_text((f"1) Kenarları {W} ve {H} olan dikdörtgene sığan en büyük kareleri yerleştir") if tr else
                           (f"1) A {W} × {H} rectangle: fill it with the largest squares that fit"))
         elif i < 82:
             info.set_text("2) Her adım bir bölme: büyük = bölüm × küçük + kalan" if tr else
@@ -2512,11 +2754,17 @@ def build(fig, P):
 
 
 def vary(P, rnd):
-    while True:
+    a0, b0 = _parts(P)
+    for _ in range(300):
         g = rnd.choice([2, 3, 4, 5, 6])
         m, n = rnd.randint(2, 9), rnd.randint(2, 9)
-        if m != n and math.gcd(m, n) == 1 and g * m * n <= 200:
-            return {"a": g * m, "b": g * n}
+        if m != n and math.gcd(m, n) == 1 and g * m * n <= 200 and {g * m, g * n} != {a0, b0}:
+            out = {"a": g * m, "b": g * n}
+            for key in ("ask", "unit"):
+                if key in P:
+                    out[key] = P[key]
+            return out
+    return dict(P)
 ''',
 }
 EXAMPLES += [
@@ -2530,23 +2778,24 @@ EXAMPLES += [
            "kaç dakika sonra yine birlikte kalkarlar?",
            "Two buses leave the same stop every {a} minutes and every {b} minutes. After leaving together, "
            "how many minutes until they leave together again?"),
-     "P": {"a": 12, "b": 20}},
+     "P": {"a": 12, "b": 20, "ask": "lcm", "unit": ["dakika", "minutes"]}},
     {"id": "fund-gcd-3", "kind": "gcd_lcm", "topics": ["tiles", "fayans", "word problem"],
      "title": ("Sözel problem: kare fayanslar", "Word problem: square tiles"),
      "q": ("{a} dm × {b} dm boyutlarındaki bir zemin, kesilmeden en büyük eş kare fayanslarla döşenecek. "
            "Bir fayansın kenarı kaç dm olmalıdır?",
            "A floor of {a} dm × {b} dm is to be covered with the largest equal square tiles without "
            "cutting. What is the side of one tile?"),
-     "P": {"a": 48, "b": 36}},
+     "P": {"a": 48, "b": 36, "ask": "gcd", "unit": ["dm", "dm"]}},
 ]
 
 # ──────────────────────────────────────────────────────────────────────────
 TEMPLATES["area_perimeter"] = {
     "course": "fund",
     "title": ("Dikdörtgende alan ve çevre", "Area and perimeter of a rectangle"),
-    "topics": ["area", "perimeter", "area and perimeter", "rectangle", "square units", "measurement",
-               "unit squares", "alan", "çevre", "alan ve çevre", "dikdörtgen", "birim kare",
-               "dikdörtgenin alanı", "ölçme"],
+    "topics": ["area and perimeter", "perimeter and area", "perimeter", "area of a rectangle",
+               "area of rectangles", "rectangle area", "square units", "unit squares",
+               "alan ve çevre", "çevre ve alan", "dikdörtgenin alanı", "dikdörtgenin çevresi",
+               "dikdörtgende alan", "birim kare", "alan ölçme"],
     "code": r'''
 import math
 import numpy as np
@@ -2628,9 +2877,12 @@ def build(fig, P):
     s = min(0.5 * aw / wf, 0.66 * ah / hf)
     XW, YH = aw / s, ah / s
     nx, ny = int(math.ceil(wf - 1e-9)), int(math.ceil(hf - 1e-9))
+    # very large rectangles: colour blocks of unit squares instead of a million single squares
+    bx_, by_ = int(math.ceil(nx / 120.0)), int(math.ceil(ny / 120.0))
+    gnx, gny = int(math.ceil(nx / float(bx_))), int(math.ceil(ny / float(by_)))
     x0 = 0.07 * XW + (0.5 * XW - wf) / 2.0
     y0 = 0.1 * YH + (0.66 * YH - hf) / 2.0
-    im = ax.imshow(np.ones((ny, nx, 4)), extent=(x0, x0 + nx, y0, y0 + ny), origin="lower",
+    im = ax.imshow(np.ones((gny, gnx, 4)), extent=(x0, x0 + gnx * bx_, y0, y0 + gny * by_), origin="lower",
                    interpolation="nearest", aspect="auto", zorder=1)
     clip = Rectangle((x0, y0), wf, hf, transform=ax.transData, fill=False, ec="none")
     ax.add_patch(clip)
@@ -2647,7 +2899,7 @@ def build(fig, P):
             if k < hf:
                 gx += [x0, x0 + wf, np.nan]
                 gy += [y0 + k, y0 + k, np.nan]
-        ax.plot(gx, gy, color="#9CA3AF", lw=0.8, zorder=2)
+        ax.plot(gx, gy, color="#374151", alpha=0.45, lw=1.0, zorder=2)
     ax.add_patch(Rectangle((x0, y0), wf, hf, fill=False, ec="#374151", lw=1.6, ls="--", zorder=3))
     off = 0.045 * max(XW, YH) * 0.5
     lab_b = ax.text(x0 + wf / 2, y0 - off, _n(w, tr), ha="center", va="top", fontsize=13, color="#374151")
@@ -2668,7 +2920,7 @@ def build(fig, P):
                             f"Perimeter = 2 × ({_n(w, False)} + {_n(h, False)})\n= {_n(Pm, False)} {ul}"),
                  transform=ax.transAxes, fontsize=14, color="#E07B39", va="top", fontweight="bold")
     total = nx * ny
-    order = np.arange(total).reshape(ny, nx)
+    order = np.arange(gnx * gny).reshape(gny, gnx)
     empty = np.array([1.0, 1.0, 1.0, 1.0])
     fillc = np.array([0.145, 0.388, 0.922, 0.55])
     corners = [(x0, y0), (x0 + wf, y0), (x0 + wf, y0 + hf), (x0, y0 + hf), (x0, y0)]
@@ -2693,7 +2945,8 @@ def build(fig, P):
 
     def update(i):
         c = int(round(total * _r(i, 12, 82)))
-        im.set_data(np.where((order < c)[:, :, None], fillc, empty))
+        cb = int(round(gnx * gny * _r(i, 12, 82)))
+        im.set_data(np.where((order < cb)[:, :, None], fillc, empty))
         if 12 <= i < 92:
             if w.denominator == 1 and h.denominator == 1:
                 cnt.set_text(f"{c}")
@@ -2721,7 +2974,7 @@ def build(fig, P):
             lb.set_color("#E07B39" if on else "#374151")
             lb.set_fontweight("bold" if on else "normal")
         if i < 12:
-            info.set_text((f"1) {_n(w)} × {_n(h)} dikdörtgeni, 1 × 1 birim karelerle") if tr else
+            info.set_text((f"1) Kenarları {_n(w)} ve {_n(h)} olan dikdörtgen; her kare 1 birim kare") if tr else
                           (f"1) A {_n(w, False)} × {_n(h, False)} rectangle on a grid of unit squares"))
         elif i < 82:
             info.set_text("2) Alan: içini dolduran birim kareleri say" if tr else
@@ -2774,8 +3027,8 @@ EXAMPLES += [
 TEMPLATES["prime_factor_tree"] = {
     "course": "fund",
     "title": ("Çarpan ağacı ile asal çarpanlara ayırma", "Prime factorisation with a factor tree"),
-    "topics": ["prime factorization", "prime factorisation", "prime factors", "factor tree",
-               "prime numbers", "primes", "composite numbers", "factors", "asal çarpanlar",
+    "topics": ["square roots", "perfect squares", "simplifying square roots", "karekök", "tam kare", "prime factorization", "prime factorisation", "prime factors", "factor tree",
+               "prime numbers", "primes", "composite numbers", "factors of a number", "asal çarpanlar",
                "asal sayılar", "çarpan ağacı", "asal çarpanlara ayırma", "çarpanlar ve katlar",
                "bölenler"],
     "code": r'''
@@ -2850,9 +3103,12 @@ def _layout(nodes):
 
 def _parts(P):
     try:
-        return int(round(float(P.get("n", 0))))
+        f = float(str(P.get("n", 0)).strip().replace(",", "."))
     except (ValueError, TypeError):
         return 0
+    if f != f or abs(f) > 10 ** 13 or f != int(f):
+        return 0
+    return int(f)
 
 
 def _factors(n):
@@ -2905,11 +3161,19 @@ def solve(P):
     ex = _expform(fs)
     steps.append((f"Üslü yazım: {n} = {ex}", f"Exponent form: {n} = {ex}"))
     exps = [fs.count(p) for p in set(fs)]
+    ans = (f"{n} = {ex}", f"{n} = {ex}")
     if all(e % 2 == 0 for e in exps):
         r = int(math.isqrt(n))
         steps.append((f"Bütün üsler çift → {n} tam karedir: √{n} = {r}",
                       f"All exponents are even → {n} is a perfect square: √{n} = {r}"))
-    return {"answer": f"{n} = {ex}", "steps": steps, "fmt": {}}
+        if P.get("square_q"):
+            ans = (f"{n} = {ex}  ⇒  tam kare, √{n} = {r}", f"{n} = {ex}  ⇒  a perfect square, √{n} = {r}")
+    elif P.get("square_q"):
+        odd = ", ".join(str(p) for p in sorted(set(fs)) if fs.count(p) % 2)
+        steps.append((f"Tek üslü asal çarpan(lar): {odd} → {n} tam kare değildir",
+                      f"Prime factor(s) with an odd exponent: {odd} → {n} is not a perfect square"))
+        ans = (f"{n} = {ex}  ⇒  tam kare değil", f"{n} = {ex}  ⇒  not a perfect square")
+    return {"answer": ans, "steps": steps, "fmt": {}}
 
 
 def build(fig, P):
@@ -2967,7 +3231,8 @@ def build(fig, P):
                      color="#374151") for j in range(len(leaves) - 1)]
     ex = _expform(fsorted)
     sq = all(fsorted.count(p) % 2 == 0 for p in set(fsorted))
-    tail = (f"   →   √{n} = {int(math.isqrt(n))}" if sq else "")
+    tail = (f"   →   √{n} = {int(math.isqrt(n))}" if sq else
+            (("   →   tam kare değil" if tr else "   →   not a perfect square") if P.get("square_q") else ""))
     final = ax.text(cx, yb - 0.95, f"{n} = {ex}{tail}", ha="center", va="center", fontsize=18, fontweight="bold",
                     color="#DC2626", bbox=dict(boxstyle="round", fc="#FEF2F2", ec="#DC2626"))
     N = 150
@@ -3003,7 +3268,7 @@ def build(fig, P):
             info.set_text("2) Asal olmayan her dalı bölmeye devam et; asallar (yeşil daire) dalı bitirir" if tr else
                           "2) Keep splitting every composite branch; primes (green circles) end a branch")
         elif i < 122:
-            info.set_text("3) Asal yaprakları küçükten büyüğe topla" if tr else
+            info.set_text("3) Asal yaprakları küçükten büyüğe sırala" if tr else
                           "3) Collect the prime leaves from smallest to largest")
         else:
             info.set_text((f"4) {n} = {ex}") if tr else (f"4) {n} = {ex}"))
@@ -3013,15 +3278,29 @@ def build(fig, P):
 
 
 def vary(P, rnd):
+    n0 = _parts(P)
+    out = {}
+    if P.get("square_q"):
+        out["square_q"] = P["square_q"]
+        if rnd.random() < 0.5:
+            for _ in range(50):
+                m = rnd.choice([6, 10, 12, 14, 15, 18, 20, 21, 22, 24, 26, 28, 30])
+                if m * m != n0:
+                    out["n"] = m * m
+                    return out
     pool = [2, 2, 2, 3, 3, 5, 7, 11, 13]
-    while True:
+    for _ in range(500):
         k = rnd.randint(3, 5)
         fs = [rnd.choice(pool) for _ in range(k)]
         v = 1
         for p in fs:
             v *= p
-        if 30 <= v <= 1000 and not _isprime(v):
-            return {"n": v}
+        sq = int(math.isqrt(v)) ** 2 == v
+        if 30 <= v <= 1000 and not _isprime(v) and v != n0 and not (P.get("square_q") and sq):
+            out["n"] = v
+            return out
+    out["n"] = 360 if n0 != 360 else 84
+    return out
 ''',
 }
 EXAMPLES += [
@@ -3035,11 +3314,11 @@ EXAMPLES += [
      "q": ("{n} sayısının asal çarpanlarını bul ve üslü biçimde yaz.",
            "Find the prime factors of {n} and write them in exponent form."),
      "P": {"n": 84}},
-    {"id": "fund-prime-3", "kind": "prime_factor_tree", "topics": ["perfect square", "tam kare", "square root"],
+    {"id": "fund-prime-3", "kind": "prime_factor_tree", "topics": ["perfect squares", "tam kare sayılar"],
      "title": ("Tam kare mi?", "Is it a perfect square?"),
      "q": ("{n} sayısını asal çarpanlarına ayır. Bu çarpanlara bakarak {n} tam kare midir?",
            "Write {n} as a product of primes. Using the factors, decide whether {n} is a perfect square."),
-     "P": {"n": 196}},
+     "P": {"n": 196, "square_q": True}},
 ]
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -3559,6 +3838,10 @@ def build(fig, P):
 
 def vary(P, rnd):
     op = _op(P)
+    try:
+        a0, b0 = _fr(P.get("a", 0)), _fr(P.get("b", 0))
+    except (TypeError, ValueError):
+        a0, b0 = Fraction(0), Fraction(0)
 
     def mk(lo, hi, places):
         return float(Fraction(rnd.randint(lo, hi), 10 ** places))
@@ -3566,20 +3849,38 @@ def vary(P, rnd):
     if op == "+":
         return {"a": mk(11, 999, rnd.choice([1, 2])), "b": mk(11, 999, rnd.choice([1, 2])), "op": "+"}
     if op == "-":
-        while True:
+        if a0 > 0 and a0.denominator == 1 and 0 < b0 < a0:
+            # "pay with a banknote, get change": the amount paid stays a banknote
+            notes = [n for n in (5, 10, 20, 50, 100, 200) if a0 / 5 <= n <= a0 * 5]
+            for _ in range(200):
+                a = rnd.choice(notes)
+                k = rnd.randint(int(a * 15), int(a * 90))
+                if k % 10 == 0 or (a, Fraction(k, 100)) == (a0, b0):
+                    continue
+                return {"a": float(a), "b": float(Fraction(k, 100)), "op": "-"}
+        for _ in range(200):
             a = mk(101, 3000, rnd.choice([0, 1, 2]))
             b = mk(11, 999, 2)
             if b < a:
                 return {"a": a, "b": b, "op": "-"}
+        return {"a": 20.0, "b": 7.85, "op": "-"}
     if op == "*":
         return {"a": mk(12, 99, 1), "b": mk(12, 99, rnd.choice([1, 2])), "op": "*"}
-    b = rnd.choice([0.25, 0.5, 0.4, 0.2, 1.5, 0.75, 0.05, 2.5, 1.2, 0.3])
-    q = rnd.choice([4, 6, 8, 12, 15, 20, 24, 30, 1.5, 2.5, 3.5])
-    return {"a": float(Fraction(str(b)) * Fraction(str(q))), "b": b, "op": "/"}
+    whole = b0 != 0 and (a0 / b0).denominator == 1
+    small = 0 < abs(b0) < 1
+    bs = [0.2, 0.25, 0.3, 0.4, 0.5, 0.75] if small else [0.25, 0.5, 0.4, 0.2, 1.5, 0.75, 0.05, 2.5, 1.2, 0.3]
+    qs = [4, 6, 8, 12, 15, 20, 24, 30] if whole else [4, 6, 8, 12, 15, 20, 24, 30, 1.5, 2.5, 3.5]
+    for _ in range(200):
+        b = rnd.choice(bs)
+        q = rnd.choice(qs)
+        a = Fraction(str(b)) * Fraction(str(q))
+        if a > 1 and (a, Fraction(str(b))) != (a0, b0):
+            return {"a": float(a), "b": b, "op": "/"}
+    return {"a": 7.5, "b": 0.25, "op": "/"}
 ''',
 }
 EXAMPLES += [
-    {"id": "fund-dec-1", "kind": "decimal_ops", "topics": ["money", "change", "para üstü", "word problem"],
+    {"id": "fund-dec-1", "kind": "decimal_ops", "topics": ["money", "making change", "para üstü", "word problem"],
      "title": ("Sözel problem: para üstü", "Word problem: getting change"),
      "q": ("{B} TL'lik bir ürün için kasaya {A} TL verdin. Kaç TL para üstü alırsın? ({expr})",
            "You pay {A} for an item costing {B}. How much change do you get? ({expr})"),
