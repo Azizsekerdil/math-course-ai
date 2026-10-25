@@ -388,8 +388,24 @@ _COURSE_RULES = [
 ]
 
 
+def _lower(text):
+    """Türkçe güvenli küçük harf: 'İ'.lower() Python'da 'i̇' (i + birleşik nokta) olur."""
+    return (text or "").replace("İ", "i").lower().replace("\u0307", "")
+
+
+#: İngiliz/Amerikan yazım farkları — konu adı ile anahtar kelime aynı biçime gelsin.
+_SPELLING = [(r"\bdiscs?\b", "disk"), (r"\bcentre\b", "center"), (r"\bmodelling\b", "modeling")]
+
+
+def _norm(text):
+    t = _lower(text)
+    for pat, rep in _SPELLING:
+        t = re.sub(pat, rep, t)
+    return t
+
+
 def course_key_from_name(name):
-    n = (name or "").lower()
+    n = _lower(name)
     for key, pats in _COURSE_RULES:
         if any(re.search(p, n) for p in pats):
             return key
@@ -397,20 +413,21 @@ def course_key_from_name(name):
 
 
 def _words(text):
-    text = re.sub(r"\.(pdf|png|jpe?g|txt|docx?|pptx?)$", "", (text or "").lower())
+    text = re.sub(r"\.(pdf|png|jpe?g|txt|docx?|pptx?)$", "", _norm(text))
     text = re.sub(r"^\s*\d+[\s.\-_]*", "", text)
     return re.sub(r"[_\-]+", " ", text)
 
 
 def _topic_score(keywords, topic_text):
-    score = 0
-    for kw in keywords:
-        kw = kw.lower().strip()
-        if not kw:
-            continue
-        if re.search(r"(?<![a-zçğıöşü])" + re.escape(kw), topic_text):
-            score += 2 + min(3, len(kw) // 6)
-    return score
+    """En uzun (en özgül) eşleşen anahtar kelime belirleyicidir; eşleşme sayısı
+    yalnızca eşitliği bozar. Böylece 'systems of linear equations' adı, genel
+    'linear equation' yerine 'systems of linear equations' anahtarına gider."""
+    best, hits = 0, 0
+    for kw in set(_norm(k).strip() for k in keywords):
+        if kw and re.search(r"(?<![a-zçğıöşü])" + re.escape(kw), topic_text):
+            best = max(best, len(kw))
+            hits += 1
+    return 0 if not best else 10 * (4 + best) + min(hits, 9)
 
 
 def match_examples(parts, course_key="", limit=None):
