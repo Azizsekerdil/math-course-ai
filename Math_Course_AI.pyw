@@ -3608,6 +3608,13 @@ class MathCourseApp(tk.Tk):
 
 
 if __name__ == "__main__":
+    import sys as _sys
+    if "--sim-selftest" in _sys.argv:
+        # Paketlenmiş EXE/.app için: simülasyon motoru + oynatıcı öz testi
+        # (pencere açmadan), rapor dosyasına yazar. Bkz. simulations/selftest.py
+        from simulations import selftest as _selftest
+        _i = _sys.argv.index("--sim-selftest")
+        _sys.exit(_selftest.run(_sys.argv[_i + 1] if len(_sys.argv) > _i + 1 else None))
     app = MathCourseApp()
     # handle non-AI status queue too
     def pump_misc():
