@@ -229,6 +229,14 @@ def _pretty(s):
     n = len(s)
     while i < n:
         c = s[i]
+        if c == "^" and s[i + 1:i + 2] == "(":
+            close = s.find(")", i + 2)
+            inner = s[i + 2:close] if close > 0 else ""
+            core = inner[1:] if inner.startswith("-") else inner
+            if core.isdigit():
+                out += "".join(_SUP[d] for d in inner)
+                i = close + 1
+                continue
         if c == "^":
             j = i + 1
             if j < n and s[j] == "-":
@@ -505,19 +513,6 @@ def _poles(h, a, b, n=8001):
         if (vc != vc or vc > 1e7) and a < c < b:
             out.append(float(c))
     return sorted(out)
-
-
-def _simpson(h, a, b, n=2000):
-    if a == b:
-        return 0.0
-    xs = np.linspace(a, b, n + 1)
-    ys = h(xs)
-    if not np.all(np.isfinite(ys)):
-        return float("nan")
-    w = np.ones(n + 1)
-    w[1:-1:2] = 4
-    w[2:-1:2] = 2
-    return float((b - a) / (3 * n) * np.dot(w, ys))
 
 
 def _jump(h, u, w, scale):
@@ -799,13 +794,15 @@ def _analyze(P):
     # value of f at the point itself
     fa = None
     if not inf:
+        tried = False
         try:
             v = _realize(f).subs(x, a)
+            tried = True
             if _finite(v) and not v.free_symbols:
                 fa = _simp(v)
         except Exception:
             fa = None
-        if fa is None:
+        if fa is None and not tried:
             v = _h1(h, af)
             if v == v and abs(_h1(h, af + 1e-9) - v) < 1e-3 * (1 + abs(v)):
                 fa = sp.Float(v, 8)
@@ -1542,13 +1539,15 @@ def _analyze(P):
         A["dh"] = dh
     x0f = A["x0f"]
     y0 = None
+    tried = False
     try:
         v = _realize(f).subs(x, x0)
+        tried = True
         if _finite(v):
             y0 = _simp(v)
     except Exception:
         y0 = None
-    if y0 is None:
+    if y0 is None and not tried:
         v = _h1(h, x0f)
         if v == v:
             y0 = sp.Float(v, 10)
@@ -1706,8 +1705,10 @@ def build(fig, P):
     ax.set_title(_mt(f"f({vn}) = " + sp.latex(A["f"]), "f(" + vn + ") = " + A["fx"]), fontsize=12)
     dlab = _mt(f"f'({vn}) = " + sp.latex(A["d"]), "f'(" + vn + ") = " + (_ps(A["d"]) if A["d"] is not None else "?")) \
         if A["d"] is not None else "f'(" + vn + ")"
-    bx.text(0.01, 0.95, dlab, transform=bx.transAxes, fontsize=10.5, va="top", color=PURPLE,
-            bbox=dict(boxstyle="round,pad=0.25", fc="white", ec="none", alpha=0.85), zorder=20)
+    bx.set_xlim(xa, xb)
+    t_ = _info(bx, 10.5, xs, dys, wide=0.4)
+    t_.set_text(dlab)
+    t_.set_color(PURPLE)
     yb = _brk(ys, hi - lo)
     dyb = _brk(dys, dhi - dlo)
     curve, = ax.plot([], [], color=BLUE, lw=2.4, zorder=3)
@@ -2195,10 +2196,11 @@ def build(fig, P):
         acc = np.interp(T, fine, c) if pa < pb else np.interp(T, fine[::-1], c[::-1])
     alo, ahi = _yr(acc, [0.0, A["vf"]])
     bx.set_ylim(alo, ahi)
-    bx.text(0.01, 0.95, _T(P, f"A({vn}) = ∫ f :  [{A['sa']}, {vn}] üzerinde birikmiş alan",
-                           f"A({vn}) = ∫ f :  area accumulated over [{A['sa']}, {vn}]"),
-            transform=bx.transAxes, fontsize=10, va="top", color=PURPLE,
-            bbox=dict(boxstyle="round,pad=0.25", fc="white", ec="none", alpha=0.85), zorder=20)
+    bx.set_xlim(X[0], X[-1])
+    t_ = _info(bx, 10, T, acc, wide=0.55)
+    t_.set_text(_T(P, f"A({vn}) = ∫ f :  [{A['sa']}, {vn}] üzerinde birikmiş alan",
+                   f"A({vn}) = ∫ f :  area accumulated over [{A['sa']}, {vn}]"))
+    t_.set_color(PURPLE)
     curve, = ax.plot([], [], color=BLUE, lw=2.4, zorder=4)
     Yb = _brk(Y, yhi - ylo)
     ax.axvline(pa, color=GRAY, ls=":", lw=1.2)
@@ -4223,9 +4225,10 @@ def build(fig, P):
     bx.set_xlabel(vn, fontsize=10)
     ax.set_title(_mt(f"f({vn}) = " + sp.latex(A["f"]) + r",\ \ [" + sp.latex(A["a"]) + ", " + sp.latex(A["b"]) + "]",
                      f"f({vn}) = {A['fx']},  [{A['sa']}, {A['sb']}]"), fontsize=12)
-    bx.text(0.01, 0.95, _T(P, f"f'({vn}) ve y = m (kesen eğimi)", f"f'({vn}) and y = m (secant slope)"),
-            transform=bx.transAxes, fontsize=10, va="top", color=PURPLE,
-            bbox=dict(boxstyle="round,pad=0.25", fc="white", ec="none", alpha=0.85), zorder=20)
+    bx.set_xlim(X[0], X[-1])
+    t_ = _info(bx, 10, X, DY, wide=0.45)
+    t_.set_text(_T(P, f"f'({vn}) ve y = m (kesen eğimi)", f"f'({vn}) and y = m (secant slope)"))
+    t_.set_color(PURPLE)
     Yb = _brk(Y, yhi - ylo)
     DYb = _brk(DY, dhi - dlo)
     curve, = ax.plot([], [], color=BLUE, lw=2.4, zorder=3)

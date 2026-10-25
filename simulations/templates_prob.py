@@ -752,9 +752,10 @@ EXAMPLES += [
 TEMPLATES["binomial"] = {
     "course": "prob",
     "title": ("Binom dağılımı", "Binomial distribution"),
-    "topics": ["binomial distribution", "binomial probability", "binomial random variable",
+    "topics": ["binomial", "binomial distribution", "binomial probability", "binomial random variable",
                "bernoulli trials", "binomial formula", "successes in n trials", "at least", "at most",
-               "binom dağılımı", "binom olasılığı", "bernoulli denemesi", "başarı sayısı", "en az", "en çok"],
+               "binom", "binom dağılımı", "binom olasılığı", "bernoulli denemesi", "başarı sayısı", "en az",
+               "en çok"],
     "code": r'''
 import math
 import numpy as np
@@ -1226,6 +1227,17 @@ def _pc(x, tr):
     return ("%" + s) if tr else (s + "%")
 
 
+def _cap(w):
+    return ("İ" if w[:1] == "i" else w[:1].upper()) + w[1:]
+
+
+def _names(P):
+    c, h = P.get("cond"), P.get("nocond")
+    if isinstance(c, (list, tuple)) and len(c) == 2 and isinstance(h, (list, tuple)) and len(h) == 2:
+        return (str(c[0]), str(c[1])), (str(h[0]), str(h[1]))
+    return ("hasta", "sick"), ("sağlıklı", "healthy")
+
+
 def _counts(P):
     N = max(10, int(P["population"]))
     prev = Fraction(str(P["prevalence"]))
@@ -1240,25 +1252,27 @@ def _counts(P):
 
 def solve(P):
     N, prev, sens, spec, D, H, TP, FN, FP, TN = _counts(P)
+    (c_tr, c_en), (h_tr, h_en) = _names(P)
     pos = TP + FP
     post = TP / pos if pos else Fraction(0)
     npv = TN / (TN + FN) if (TN + FN) else Fraction(0)
+    good = npv >= Fraction(95, 100)
     num = sens * prev
     den = sens * prev + (1 - spec) * (1 - prev)
     red = "" if f"{_v(TP)}/{_v(pos)}" == _fr(post) else f" = {_fr(post)}"
     bt = (f"({_num(sens)}·{_num(prev)}) / ({_num(sens)}·{_num(prev)} + {_num(1 - spec)}·{_num(1 - prev)}) "
           f"= {_num(num)}/{_num(den)} ≈ {_g(post)}")
     steps = [
-        (f"{N} kişide hasta (D): {N}·{_num(prev)} = {_v(D)};  sağlıklı: {N} − {_v(D)} = {_v(H)}",
-         f"Among {N} people, sick (D): {N}·{_num(prev)} = {_v(D)};  healthy: {N} − {_v(D)} = {_v(H)}"),
-        (f"Hastalardan testi pozitif çıkan (duyarlılık {_num(sens)}): {_v(D)}·{_num(sens)} = {_v(TP)} "
+        (f"{N} kişide {c_tr} (D): {N}·{_num(prev)} = {_v(D)};  {h_tr}: {N} − {_v(D)} = {_v(H)}",
+         f"Among {N} people, {c_en} (D): {N}·{_num(prev)} = {_v(D)};  {h_en}: {N} − {_v(D)} = {_v(H)}"),
+        (f"{_cap(c_tr)} grubunda testi pozitif çıkan (duyarlılık {_num(sens)}): {_v(D)}·{_num(sens)} = {_v(TP)} "
          f"doğru pozitif;  {_v(FN)} yanlış negatif",
-         f"Sick people who test positive (sensitivity {_num(sens)}): {_v(D)}·{_num(sens)} = {_v(TP)} "
-         f"true positives;  {_v(FN)} false negatives"),
-        (f"Sağlıklılardan testi pozitif çıkan (1 − özgüllük = {_num(1 - spec)}): {_v(H)}·{_num(1 - spec)} "
+         f"Positive tests in the {c_en} group (sensitivity {_num(sens)}): {_v(D)}·{_num(sens)} = {_v(TP)} "
+         f"true positive(s);  {_v(FN)} false negative(s)"),
+        (f"{_cap(h_tr)} grubunda testi pozitif çıkan (1 − özgüllük = {_num(1 - spec)}): {_v(H)}·{_num(1 - spec)} "
          f"= {_v(FP)} yanlış pozitif",
-         f"Healthy people who test positive (1 − specificity = {_num(1 - spec)}): {_v(H)}·{_num(1 - spec)} "
-         f"= {_v(FP)} false positives"),
+         f"Positive tests in the {h_en} group (1 − specificity = {_num(1 - spec)}): {_v(H)}·{_num(1 - spec)} "
+         f"= {_v(FP)} false positive(s)"),
         (f"Pozitif sonuçların toplamı: {_v(TP)} + {_v(FP)} = {_v(pos)}",
          f"All positive results: {_v(TP)} + {_v(FP)} = {_v(pos)}"),
         (f"P(D | +) = (doğru pozitif)/(tüm pozitifler) = {_v(TP)}/{_v(pos)}{red} ≈ {_g(post)} "
@@ -1267,11 +1281,13 @@ def solve(P):
          f"({_pc(post, False)})"),
         ("Bayes formülü: P(D|+) = P(+|D)·P(D) / [P(+|D)·P(D) + P(+|D')·P(D')] = " + bt,
          "Bayes' formula: P(D|+) = P(+|D)·P(D) / [P(+|D)·P(D) + P(+|D')·P(D')] = " + bt),
-        (f"Ayrıca P(sağlıklı | −) = {_v(TN)}/{_v(TN + FN)} ≈ {_g(npv)}: negatif sonuç çok güvenilir",
-         f"Also P(healthy | −) = {_v(TN)}/{_v(TN + FN)} ≈ {_g(npv)}: a negative result is very reliable"),
+        (f"Ayrıca P({h_tr} | −) = {_v(TN)}/{_v(TN + FN)} ≈ {_g(npv)}"
+         + (": negatif sonuç çok güvenilir" if good else ""),
+         f"Also P({h_en} | −) = {_v(TN)}/{_v(TN + FN)} ≈ {_g(npv)}"
+         + (": a negative result is very reliable" if good else "")),
     ]
-    return {"answer": (f"P(hasta | +) = {_v(TP)}/{_v(pos)} ≈ {_g(post)} ({_pc(post, True)})",
-                       f"P(sick | +) = {_v(TP)}/{_v(pos)} ≈ {_g(post)} ({_pc(post, False)})"),
+    return {"answer": (f"P({c_tr} | +) = {_v(TP)}/{_v(pos)} ≈ {_g(post)} ({_pc(post, True)})",
+                       f"P({c_en} | +) = {_v(TP)}/{_v(pos)} ≈ {_g(post)} ({_pc(post, False)})"),
             "steps": steps,
             "fmt": {"prev_pct": _g(100 * prev, 2), "sens_pct": _g(100 * sens, 2),
                     "spec_pct": _g(100 * spec, 2)}}
@@ -1280,6 +1296,7 @@ def solve(P):
 def build(fig, P):
     tr = P.get("lang", "tr") == "tr"
     N, prev, sens, spec, D, H, TP, FN, FP, TN = _counts(P)
+    cn, hn = (x[0 if tr else 1] for x in _names(P))
     pos = TP + FP
     post = TP / pos if pos else Fraction(0)
     unit = 1.0 if N <= 2000 else N / 1000.0
@@ -1307,15 +1324,13 @@ def build(fig, P):
     sc = ax.scatter(gx, gy, s=size * 1.2, c=np.tile(GRAY, (M, 1)), marker="o", linewidths=0)
     title = ax.set_title("", fontsize=11)
     hs = [Line2D([], [], marker="o", ls="", color=c, ms=8, label=l) for c, l in (
-        ("#DC2626", "hasta, test +" if tr else "sick, test +"),
-        ("#FCA5A5", "hasta, test −" if tr else "sick, test −"),
-        ("#E07B39", "sağlıklı, test +" if tr else "healthy, test +"),
-        ("#CBD5E1", "sağlıklı, test −" if tr else "healthy, test −"))]
+        ("#DC2626", f"{cn}, test +"), ("#FCA5A5", f"{cn}, test −"),
+        ("#E07B39", f"{hn}, test +"), ("#CBD5E1", f"{hn}, test −"))]
     ax.legend(handles=hs, loc="upper center", bbox_to_anchor=(0.5, 0.0), ncol=4, fontsize=8.5,
               frameon=False, handletextpad=0.2, columnspacing=1.0)
     unit_note = "" if unit == 1.0 else ((f" (1 simge = {unit:g} kişi)") if tr else (f" (1 icon = {unit:g} people)"))
     L = [(0, (f"Topluluk: {N} kişi" if tr else f"Population: {N} people") + unit_note, "#111827", 10.5),
-         (18, (f"Hasta: {N}·{_num(prev)} = {_v(D)}" if tr else f"Sick: {N}·{_num(prev)} = {_v(D)}"),
+         (18, f"{cn} (D): {N}·{_num(prev)} = {_v(D)}",
           "#DC2626", 10.5),
          (48, (f"Doğru pozitif: {_v(D)}·{_num(sens)} = {_v(TP)}" if tr else
                f"True positive: {_v(D)}·{_num(sens)} = {_v(TP)}"), "#B91C1C", 10.5),
@@ -1325,7 +1340,7 @@ def build(fig, P):
                f"False positive: {_v(H)}·{_num(1 - spec)} = {_v(FP)}"), "#C2410C", 10.5),
          (104, (f"Pozitif sonuç: {_v(TP)} + {_v(FP)} = {_v(pos)}" if tr else
                 f"Positive results: {_v(TP)} + {_v(FP)} = {_v(pos)}"), "#111827", 10.5),
-         (122, (f"P(hasta | +) = {_v(TP)}/{_v(pos)}" if tr else f"P(sick | +) = {_v(TP)}/{_v(pos)}"),
+         (122, f"P({cn} | +) = {_v(TP)}/{_v(pos)}",
           "#111827", 11.5),
          (122, f"≈ {_pc(post, tr)}", "#DC2626", 17)]
     tl = []
@@ -1363,28 +1378,28 @@ def build(fig, P):
         rtp.set_width(0.94 * wtp * ub)
         rfp.set_x(0.03 + 0.94 * wtp * ub)
         rfp.set_width(0.94 * (1 - wtp) * ub)
-        bl.set_text(((f"pozitiflerin içinde: hasta {_v(TP)} | sağlıklı {_v(FP)}") if tr else
-                     (f"among positives: sick {_v(TP)} | healthy {_v(FP)}")) if ub > 0 else "")
+        bl.set_text(((f"pozitiflerin içinde: {cn} {_v(TP)} | {hn} {_v(FP)}") if tr else
+                     (f"among positives: {cn} {_v(TP)} | {hn} {_v(FP)}")) if ub > 0 else "")
         if i < 18:
             title.set_text((f"Her nokta bir kişi: {N} kişilik topluluk" if tr else
                             f"Each dot is a person: a population of {N}") if unit == 1.0 else
                            (f"{N} kişilik topluluk (1 simge = {unit:g} kişi)" if tr else
                             f"A population of {N} (1 icon = {unit:g} people)"))
         elif i < 48:
-            title.set_text((f"Yaygınlık {_pc(prev, True)}: {_v(D)} kişi hasta" if tr else
-                            f"Prevalence {_pc(prev, False)}: {_v(D)} people are sick"))
+            title.set_text((f"Yaygınlık {_pc(prev, True)}: {_v(D)} kişi {cn}" if tr else
+                            f"Prevalence {_pc(prev, False)}: {_v(D)} people are {cn}"))
         elif i < 74:
-            title.set_text((f"Hastalarda test (duyarlılık {_pc(sens, True)}): {_v(TP)} pozitif, {_v(FN)} negatif"
+            title.set_text((f"{_cap(cn)} grubunda test (duyarlılık {_pc(sens, True)}): {_v(TP)} pozitif, {_v(FN)} negatif"
                             if tr else
-                            f"Test on the sick (sensitivity {_pc(sens, False)}): {_v(TP)} positive, {_v(FN)} negative"))
+                            f"Test in the {cn} group (sensitivity {_pc(sens, False)}): {_v(TP)} positive, {_v(FN)} negative"))
         elif i < 104:
-            title.set_text((f"Sağlıklılarda yanlış alarm (özgüllük {_pc(spec, True)}): {_v(FP)} pozitif" if tr else
-                            f"False alarms among the healthy (specificity {_pc(spec, False)}): {_v(FP)} positive"))
+            title.set_text((f"{_cap(hn)} grubunda yanlış alarm (özgüllük {_pc(spec, True)}): {_v(FP)} pozitif" if tr else
+                            f"False alarms in the {hn} group (specificity {_pc(spec, False)}): {_v(FP)} positive"))
         elif i < 122:
             title.set_text(("Yalnızca testi pozitif çıkanlara bak" if tr else "Look only at the positive results"))
         else:
-            title.set_text((f"{_v(pos)} pozitiften yalnızca {_v(TP)} kişi gerçekten hasta" if tr else
-                            f"Only {_v(TP)} of the {_v(pos)} positives are really sick"))
+            title.set_text((f"{_v(pos)} pozitiften yalnızca {_v(TP)} kişi gerçekten {cn}" if tr else
+                            f"Only {_v(TP)} of the {_v(pos)} positives are really {cn}"))
         return []
 
     return N_FR, update
@@ -1403,7 +1418,11 @@ def vary(P, rnd):
         H = N - D
         ok = all(Fraction(v).denominator == 1 for v in (D, D * Fraction(str(sens)), H * (1 - Fraction(str(spec)))))
         if ok and D * Fraction(str(sens)) > 0:
-            return {"prevalence": prev, "sensitivity": sens, "specificity": spec, "population": N}
+            out = {"prevalence": prev, "sensitivity": sens, "specificity": spec, "population": N}
+            for key in ("cond", "nocond"):
+                if key in P:
+                    out[key] = P[key]
+            return out
 ''',
 }
 EXAMPLES += [
@@ -1431,7 +1450,8 @@ EXAMPLES += [
            "{prev_pct}% of athletes use a banned substance. The test catches {sens_pct}% of users and clears "
            "{spec_pct}% of non-users. Among {population} athletes, what is the probability that a positive "
            "athlete is really a user?"),
-     "P": {"prevalence": 0.05, "sensitivity": 0.95, "specificity": 0.98, "population": 2000}},
+     "P": {"prevalence": 0.05, "sensitivity": 0.95, "specificity": 0.98, "population": 2000,
+           "cond": ["kullanıcı", "users"], "nocond": ["temiz", "clean"]}},
 ]
 
 # ──────────────────────────────────────────────────────────────────────────

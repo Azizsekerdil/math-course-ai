@@ -140,6 +140,15 @@ def _parse_part(s):
 
 
 def _parse_f(raw):
+    try:
+        return _parse_f0(raw)
+    except ValueError:
+        raise
+    except Exception:
+        raise ValueError("y' = f(x, y) ifadesi okunamadı / could not read y' = f(x, y): " + str(raw))
+
+
+def _parse_f0(raw):
     s = _clean(raw)
     expr, rhs = None, None
     if "=" in s:
@@ -174,6 +183,8 @@ def _parse_f(raw):
     if ren:
         f = f.subs(ren)
     extra = sorted([v for v in f.free_symbols if v not in (_X, _Y)], key=str)
+    if len(extra) > 2:
+        raise ValueError("Tanınmayan ifade / unrecognised expression: " + str(raw))
     if extra:
         f = f.subs({v: 1 for v in extra})
     if f.has(sp.Float):
@@ -988,10 +999,15 @@ def vary(P, rnd):
             if ymin < v < ymax and abs(v - y0) > 1e-9]
     rnd.shuffle(opts)
     for v in opts:
-        if math.isfinite(F1(x0, v)):
-            Q = dict(P)
-            Q["y0"] = int(v) if v == int(v) else v
-            return Q
+        if not math.isfinite(F1(x0, v)):
+            continue
+        Q = dict(P)
+        Q["y0"] = int(v) if v == int(v) else v
+        try:
+            if _analyze(Q)["ye"] is not None:
+                return Q
+        except Exception:
+            continue
     return dict(P)
 ''',
 }
@@ -1223,15 +1239,15 @@ def vary(P, rnd):
     grow = float(_kexpr(P)) > 0
     sgn = "" if grow else "-"
     if isinstance(P.get("k"), str):
-        T = rnd.choice([2, 3, 4, 5, 6, 8, 10] if grow else [2, 4, 5, 8, 10, 12, 20, 50])
-        Q["k"] = f"{sgn}ln(2)/{T}"
-        Q["t_end"] = T * rnd.choice([2, 3, 4, 5])
-        Q["y0"] = rnd.choice([100, 200, 250, 400, 500, 800, 1000] if grow else [16, 32, 40, 64, 80, 160])
+        T = math.log(2) / abs(float(_kexpr(P)))
+        Tn = int(round(T)) if abs(T - round(T)) < 1e-9 else round(T, 4)
+        Q["t_end"] = Tn * rnd.choice([2, 3, 4, 5])
+        Q["y0"] = rnd.choice([100, 200, 250, 400, 500, 800, 1000] if grow else [16, 32, 40, 64, 80, 160, 200])
     else:
         kk = rnd.choice([0.02, 0.03, 0.04, 0.05, 0.08, 0.1, 0.12, 0.2])
         Q["k"] = kk if grow else -kk
         Q["t_end"] = rnd.choice([5, 8, 10, 12, 15, 20])
-        Q["y0"] = rnd.choice([50, 100, 200, 500, 1000, 5000, 12000])
+        Q["y0"] = rnd.choice([2000, 5000, 8000, 12000, 20000, 50000])
     return Q
 ''',
 }
@@ -1444,7 +1460,7 @@ def vary(P, rnd):
     cool = float(P["T0"]) > float(P["Ta"])
     Ta = rnd.choice([18, 20, 22, 24, 25])
     if cool:
-        T0 = rnd.choice([70, 75, 80, 85, 90, 95])
+        T0 = max(Ta + 30, int(P["T0"]) + rnd.choice([-20, -10, -5, 5, 10, 20]))
     else:
         T0 = rnd.choice([2, 4, 5, 6, 8])
     k = rnd.choice([0.04, 0.05, 0.06, 0.08, 0.1, 0.12])
@@ -1907,7 +1923,7 @@ def vary(P, rnd):
     else:
         p, q = rnd.sample([1, 2, 3, 4, 5], 2)
         c, k = m * (p + q), m * p * q
-    x0 = rnd.choice([0.5, 1, 1, 2, -1])
+    x0 = rnd.choice([0.5, 1, 1, 1.5, 2])
     v0 = rnd.choice([0, 0, 1, -1, 2])
     return {"m": m, "c": c, "k": k, "x0": x0, "v0": v0}
 ''',
@@ -2475,7 +2491,7 @@ def build(fig, P):
 
 
 def vary(P, rnd):
-    xs_ = rnd.choice([20, 25, 40, 50, 60, 80])
+    xs_ = rnd.choice([20, 25, 40, 50, 80])
     ys_ = rnd.choice([5, 8, 10, 20, 25])
     a = rnd.choice([0.5, 0.8, 1.0, 1.2])
     c = rnd.choice([0.3, 0.4, 0.5, 0.6, 0.8])
@@ -2725,7 +2741,15 @@ def vary(P, rnd):
     r = rnd.choice([2, 4, 5, 10, 20])
     flush = float(P["c_in"]) == 0
     cin = 0 if flush else rnd.choice([0.5, 1, 2, 3])
-    A0 = rnd.choice([100, 200, 300, 500]) if flush else rnd.choice([0, 0, 10, 50, int(V * cin * 1.5)])
+    Ae0 = float(P["V"]) * float(P["c_in"])
+    if flush:
+        A0 = rnd.choice([100, 200, 300, 500])
+    elif float(P["A0"]) == 0:
+        A0 = 0
+    elif float(P["A0"]) > Ae0:
+        A0 = int(V * cin * rnd.choice([1.5, 1.6, 2, 2.5]))
+    else:
+        A0 = int(V * cin * rnd.choice([0.2, 0.25, 0.4, 0.5]))
     Q.update({"V": V, "r": r, "c_in": cin, "A0": A0, "t1": rnd.choice([10, 20, 30, 40])})
     if "A_target" in P:
         Ae = V * cin
@@ -2938,16 +2962,16 @@ def build(fig, P):
 
 def vary(P, rnd):
     S = _get(P)
-    y0 = rnd.choice([1, 2, -1, 3])
-    dy0 = rnd.choice([0, 1, -1, 2, -2, 4])
+    C1 = rnd.choice([1, 2, -1, 3])
+    C2 = rnd.choice([1, -1, 2, -2, 3])
     if S["case"] == "real":
         r1, r2 = rnd.sample([-4, -3, -2, -1, 1, 2, 3], 2)
-        return {"a": 1, "b": -(r1 + r2), "c": r1 * r2, "y0": y0, "dy0": dy0}
+        return {"a": 1, "b": -(r1 + r2), "c": r1 * r2, "y0": C1 + C2, "dy0": r1 * C1 + r2 * C2}
     if S["case"] == "double":
         r = rnd.choice([-3, -2, -1, 1, 2])
-        return {"a": 1, "b": -2 * r, "c": r * r, "y0": y0, "dy0": dy0}
+        return {"a": 1, "b": -2 * r, "c": r * r, "y0": C1, "dy0": r * C1 + C2}
     al, w = rnd.choice([-2, -1, -1, 0, 1]), rnd.choice([1, 2, 3])
-    return {"a": 1, "b": -2 * al, "c": al * al + w * w, "y0": y0, "dy0": dy0}
+    return {"a": 1, "b": -2 * al, "c": al * al + w * w, "y0": C1, "dy0": al * C1 + w * C2}
 ''',
 }
 EXAMPLES += [

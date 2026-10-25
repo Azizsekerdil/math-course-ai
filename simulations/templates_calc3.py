@@ -156,8 +156,12 @@ def _pp(e):
         if ch == "*":
             p, q = out[-1:], s[i + 1:i + 2]
             dig = p != "" and p in "0123456789"
+            if out.endswith("pi") and not out[-3:-2].isalpha() and q in ("x", "y", "t", "("):
+                out = out[:-2] + "π"
+                i += 1
+                continue
             if (dig and (q in ("x", "y", "t", "(") or s.startswith("sqrt", i + 1)
-                         or s.startswith("pi", i + 1))) or (out.endswith("pi") and q in ("x", "y", "t")) or (
+                         or s.startswith("pi", i + 1))) or (
                     p != "" and p in "xyt⁰¹²³⁴⁵⁶⁷⁸⁹" and q != "" and q in "xyt"):
                 i += 1
                 continue
@@ -807,6 +811,10 @@ def build(fig, P):
 def vary(P, rnd):
     form = rnd.choice(["bowl", "cubic", "shift", "saddle"])
     x, y = _X, _Y
+    if "exp" in str(P.get("f", "")):
+        A, s, h0, k0 = rnd.choice([2, 3, 4, 5]), rnd.choice([2, 4]), rnd.randint(-1, 1), rnd.randint(-1, 1)
+        f = A * sp.exp(-((x - h0) ** 2 + (y - k0) ** 2) / s)
+        return {"f": sp.sstr(f), "xmin": h0 - 3, "xmax": h0 + 3, "ymin": k0 - 3, "ymax": k0 + 3}
     if form == "bowl":
         p, q = rnd.choice([1, 2, 3, -1, -2]), rnd.choice([1, 2, 3, -1, -2])
         f, box = p * x ** 2 + q * y ** 2, (-2, 2, -2, 2)
@@ -1039,6 +1047,13 @@ def build(fig, P):
 
 def vary(P, rnd):
     x, y = _X, _Y
+    src = _parse(P.get("f", "x*y"))
+    if "sqrt" in str(P.get("f", "")):
+        x0, y0 = rnd.choice([(3, 4), (4, 3), (5, 12), (6, 8), (8, 6), (-3, 4), (4, -3), (12, 5)])
+        return {"f": "sqrt(x**2 + y**2)", "x0": x0, "y0": y0}
+    if src.as_coeff_Add()[0] > 0:
+        C, p, q = rnd.choice([50, 60, 80, 100]), rnd.choice([1, 2, 3]), rnd.choice([1, 2, 3])
+        return {"f": sp.sstr(C - p * x ** 2 - q * y ** 2), "x0": rnd.randint(1, 3), "y0": rnd.randint(1, 3)}
     form = rnd.choice(["quad", "mixed", "cubic"])
     x0, y0 = rnd.choice([-2, -1, 1, 2]), rnd.choice([-2, -1, 1, 2])
     if form == "quad":
@@ -1278,6 +1293,10 @@ def build(fig, P):
 
 def vary(P, rnd):
     x, y = _X, _Y
+    if "pi" in str(P.get("f", "")):
+        x0, y0 = rnd.choice([2, 3, 4, 5]), rnd.choice([6, 8, 10, 12])
+        return {"f": "pi*x**2*y", "x0": x0, "y0": y0, "x1": round(x0 + rnd.choice([0.1, -0.1]), 2),
+                "y1": round(y0 + rnd.choice([0.2, -0.2, 0.1]), 2)}
     form = rnd.choice(["bowl", "mixed", "prod"])
     x0, y0 = rnd.choice([1, 2, -1]), rnd.choice([1, 2, -2])
     if form == "bowl":
@@ -1618,9 +1637,19 @@ def build(fig, P):
 
 def vary(P, rnd):
     x, y = _X, _Y
+    src = str(P.get("f", ""))
     form = rnd.choice(["hill", "prod", "bowl"])
+    if "/" in src:
+        form = "heat"
+    elif _parse(src or "x*y").as_coeff_Add()[0] > 0:
+        form = "hill"
     x0, y0 = rnd.choice([-2, -1, 1, 2]), rnd.choice([-2, -1, 1, 2])
     ux, uy = rnd.choice([(3, 4), (4, 3), (-3, 4), (1, 0), (0, 1), (1, 1), (-1, 2), (5, 12)])
+    if P.get("ux", 1) == 0 or P.get("uy", 1) == 0:
+        ux, uy = P.get("ux", 1), P.get("uy", 0)
+    if form == "heat":
+        C = rnd.choice([50, 100, 200])
+        return {"f": f"{C}/(1 + x**2 + y**2)", "x0": x0, "y0": y0, "ux": ux, "uy": uy}
     if form == "hill":
         k = rnd.choice([1, 2, 3])
         f = rnd.choice([10, 12, 16]) - x ** 2 - k * y ** 2
@@ -1884,6 +1913,14 @@ def build(fig, P):
 
 def vary(P, rnd):
     x, y = _X, _Y
+    src = _parse(P.get("f", "x*y"))
+    if src.has(sp.exp):
+        return {"f": "x*exp(x*y)", "a": 0, "b": rnd.choice([1, 2]), "c": 0, "d": rnd.choice([1, 2]),
+                "order": P.get("order", "dydx")}
+    if src.is_polynomial(x, y) and sp.Poly(src, x, y).total_degree() == 1:
+        b, d = rnd.choice([8, 10, 12, 20]), rnd.choice([4, 5, 6, 10])
+        p, q = rnd.choice([4, 5, 10]), rnd.choice([5, 10, 20])
+        return {"f": f"1 + x/{p} + y/{q}", "a": 0, "b": b, "c": 0, "d": d}
     form = rnd.choice(["poly", "plane", "prod"])
     a, c = 0, 0
     b, d = rnd.choice([1, 2, 3]), rnd.choice([1, 2, 3])
@@ -2185,6 +2222,20 @@ def vary(P, rnd):
     x, y = _X, _Y
     form = rnd.choice(["rot", "grad", "spiral", "shear"])
     k = rnd.choice([1, 2, 3])
+    try:
+        d0 = _parts(_parse(P["P"]), _parse(P["Q"]))
+        dv, cv = d0[4], d0[5]
+        if cv == 0:
+            form = "grad"
+        elif dv == 0:
+            form = "rot"
+        elif not dv.free_symbols and not cv.free_symbols:
+            s = rnd.choice([1, 2, 3])
+            sg = -1 if dv < 0 else 1
+            return {"P": sp.sstr(sg * x / (2 * s) - k * y), "Q": sp.sstr(k * x + sg * y / (2 * s)),
+                    "x0": rnd.choice([1, -1, 2]), "y0": rnd.choice([1, 2, -1])}
+    except Exception:
+        pass
     if form == "rot":
         Fp, Fq = -k * y, k * x
     elif form == "grad":
@@ -2412,7 +2463,8 @@ def build(fig, P):
 
 
 def vary(P, rnd):
-    form = rnd.choice(["helix", "cubic", "line"])
+    src = " ".join(str(P.get(k, "")) for k in ("x", "y", "z"))
+    form = "helix" if ("cos" in src or "sin" in src) else ("cubic" if "**" in src else "line")
     t = _T
     if form == "helix":
         a, b = rnd.choice([(3, 4), (4, 3), (1, 1), (5, 12), (2, 1)])
@@ -2420,7 +2472,9 @@ def vary(P, rnd):
         return {"x": sp.sstr(a * sp.cos(t)), "y": sp.sstr(a * sp.sin(t)), "z": sp.sstr(b * t), "t0": 0,
                 "t1": sp.sstr(k * sp.pi)}
     if form == "cubic":
-        return {"x": "t", "y": "t**2", "z": "2*t**3/3", "t0": 0, "t1": rnd.choice([1, 2, 3])}
+        c = rnd.choice([1, 2, 3])
+        return {"x": "t", "y": sp.sstr(c * t ** 2), "z": sp.sstr(sp.Rational(2 * c * c, 3) * t ** 3), "t0": 0,
+                "t1": rnd.choice([1, 2, 3])}
     p, q, s = rnd.choice([(1, 2, 2), (2, 3, 6), (2, 6, 9), (4, 4, 7)])
     return {"x": sp.sstr(p * t + 1), "y": sp.sstr(q * t), "z": sp.sstr(s * t - 2), "t0": 0,
             "t1": rnd.choice([1, 2, 3])}

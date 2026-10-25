@@ -304,7 +304,7 @@ def build(fig, P):
     return N, update
 
 
-def vary(P, rnd):
+def _vary1(P, rnd):
     base = rnd.choice([(3, 4, 5), (5, 12, 13), (8, 15, 17), (7, 24, 25), (20, 21, 29), (9, 40, 41)])
     k = rnd.choice([1, 1, 2, 3]) if base[2] <= 13 else 1
     a, b, c = (v * k for v in base)
@@ -315,6 +315,15 @@ def vary(P, rnd):
         out.update({"a": a, "c": c})
     else:
         out.update({"a": a, "b": b})
+    return out
+
+
+def vary(P, rnd):
+    out = dict(P)
+    for _ in range(40):
+        out = _vary1(P, rnd)
+        if out != P:
+            break
     return out
 ''',
 }
@@ -521,7 +530,7 @@ def build(fig, P):
     return N, update
 
 
-def vary(P, rnd):
+def _vary1(P, rnd):
     while True:
         b = rnd.randint(4, 12)
         h = rnd.randint(3, 10)
@@ -536,6 +545,15 @@ def vary(P, rnd):
     else:
         sh = rnd.randint(1, b - 1)
     out.update({"base": b, "height": h, "shift": sh})
+    return out
+
+
+def vary(P, rnd):
+    out = dict(P)
+    for _ in range(40):
+        out = _vary1(P, rnd)
+        if out != P:
+            break
     return out
 ''',
 }
@@ -746,9 +764,18 @@ def build(fig, P):
     return N, update
 
 
-def vary(P, rnd):
+def _vary1(P, rnd):
     out = {k: v for k, v in P.items() if k not in ("r", "radius")}
     out["r"] = rnd.choice([2, 3, 4, 5, 6, 7, 8, 10, 12, 2.5, 1.5])
+    return out
+
+
+def vary(P, rnd):
+    out = dict(P)
+    for _ in range(40):
+        out = _vary1(P, rnd)
+        if out != P:
+            break
     return out
 ''',
 }
@@ -979,7 +1006,7 @@ def build(fig, P):
     return N, update
 
 
-def vary(P, rnd):
+def _vary1(P, rnd):
     out = dict(P)
     if float(P["B"]) == 90:
         out["A"] = rnd.choice([v for v in range(20, 71, 5) if v != P["A"]])
@@ -994,6 +1021,15 @@ def vary(P, rnd):
         if 25 <= 180 - A - B <= 120 and B != 90:
             out.update({"A": A, "B": B})
             return out
+
+
+def vary(P, rnd):
+    out = dict(P)
+    for _ in range(40):
+        out = _vary1(P, rnd)
+        if out != P:
+            break
+    return out
 ''',
 }
 EXAMPLES += [
@@ -1251,9 +1287,18 @@ def build(fig, P):
     return N, update
 
 
-def vary(P, rnd):
+def _vary1(P, rnd):
     out = dict(P)
     out["n"] = rnd.choice([v for v in (5, 6, 8, 9, 10, 12) if v != P.get("n")])
+    return out
+
+
+def vary(P, rnd):
+    out = dict(P)
+    for _ in range(40):
+        out = _vary1(P, rnd)
+        if out != P:
+            break
     return out
 ''',
 }
@@ -1640,7 +1685,7 @@ def build(fig, P):
     return N, update
 
 
-def vary(P, rnd):
+def _vary1(P, rnd):
     out = dict(P)
     if _shadow(P):
         out.update({"a": rnd.choice([1.5, 1.6, 1.8, 2]), "b": rnd.choice([1, 1.2, 1.5, 2, 2.5, 3]),
@@ -1653,7 +1698,17 @@ def vary(P, rnd):
     else:
         pool = [(4, 5, 6), (5, 6, 7), (6, 7, 8), (5, 5, 6), (4, 6, 7), (7, 8, 9), (3, 5, 7)]
     a, b, c = rnd.choice(pool)
-    out.update({"a": a, "b": b, "c": c, "k": rnd.choice([1.5, 2, 2.5, 3, 0.5])})
+    ks = [1.5, 2, 2.5, 3] if float(P["k"]) > 1 else [0.5, 0.25]
+    out.update({"a": a, "b": b, "c": c, "k": rnd.choice(ks)})
+    return out
+
+
+def vary(P, rnd):
+    out = dict(P)
+    for _ in range(40):
+        out = _vary1(P, rnd)
+        if out != P:
+            break
     return out
 ''',
 }
@@ -2071,7 +2126,7 @@ def build(fig, P):
     return N, update
 
 
-def vary(P, rnd):
+def _vary1(P, rnd):
     out = dict(P)
     t = P["type"]
     even = t == "dilate" and float(P.get("k", 2)) < 1
@@ -2097,6 +2152,15 @@ def vary(P, rnd):
         pass
     else:
         out.update({"k": 0.5 if even else rnd.choice([2, 2, 3]), "cx": 0, "cy": 0})
+    return out
+
+
+def vary(P, rnd):
+    out = dict(P)
+    for _ in range(40):
+        out = _vary1(P, rnd)
+        if out != P:
+            break
     return out
 ''',
 }
@@ -2347,7 +2411,7 @@ def build(fig, P):
     return N, update
 
 
-def vary(P, rnd):
+def _vary1(P, rnd):
     out = dict(P)
     while True:
         a, b = rnd.choice([(3, 4), (4, 3), (6, 8), (8, 6), (5, 12), (2, 3), (4, 4), (1, 5)])
@@ -2357,6 +2421,15 @@ def vary(P, rnd):
         if max(abs(x2), abs(y2)) <= 9:
             out.update({"x1": x1, "y1": y1, "x2": x2, "y2": y2})
             return out
+
+
+def vary(P, rnd):
+    out = dict(P)
+    for _ in range(40):
+        out = _vary1(P, rnd)
+        if out != P:
+            break
+    return out
 ''',
 }
 EXAMPLES += [
@@ -2573,9 +2646,18 @@ def build(fig, P):
     return N, update
 
 
-def vary(P, rnd):
+def _vary1(P, rnd):
     out = dict(P)
     out.update({"r": rnd.randint(3, 12), "theta": rnd.choice([30, 45, 60, 72, 90, 120, 135, 150, 210, 240, 270, 300])})
+    return out
+
+
+def vary(P, rnd):
+    out = dict(P)
+    for _ in range(40):
+        out = _vary1(P, rnd)
+        if out != P:
+            break
     return out
 ''',
 }
@@ -2971,11 +3053,16 @@ def build(fig, P):
     return N, update
 
 
-def vary(P, rnd):
+def _vary1(P, rnd):
     out = dict(P)
     sh = P.get("shape", "cylinder")
     if sh == "prism":
-        out.update({"l": rnd.choice([3, 4, 5, 6, 8, 10]), "w": rnd.choice([2, 3, 4, 5]), "h": rnd.choice([2, 3, 4, 5, 6])})
+        if max(float(P["l"]), float(P["w"]), float(P["h"])) >= 20:
+            out.update({"l": rnd.choice([40, 50, 60, 80, 100]), "w": rnd.choice([20, 25, 30, 40]),
+                        "h": rnd.choice([30, 35, 40, 50])})
+        else:
+            out.update({"l": rnd.choice([3, 4, 5, 6, 8, 10]), "w": rnd.choice([2, 3, 4, 5]),
+                        "h": rnd.choice([2, 3, 4, 5, 6])})
     elif sh == "sphere":
         out["r"] = rnd.choice([2, 3, 4, 5, 6, 9, 10])
     elif sh == "cone":
@@ -2983,6 +3070,15 @@ def vary(P, rnd):
         out.update({"r": r, "h": h})
     else:
         out.update({"r": rnd.choice([2, 3, 4, 5]), "h": rnd.choice([3, 4, 5, 6, 8, 10])})
+    return out
+
+
+def vary(P, rnd):
+    out = dict(P)
+    for _ in range(40):
+        out = _vary1(P, rnd)
+        if out != P:
+            break
     return out
 ''',
 }
@@ -3266,11 +3362,20 @@ def build(fig, P):
     return N, update
 
 
-def vary(P, rnd):
+def _vary1(P, rnd):
     out = dict(P)
     q = int((float(P["deg"]) % 360) // 90)
     pool = [v + 90 * q for v in (30, 45, 60) if v + 90 * q != float(P["deg"]) % 360]
     out["deg"] = rnd.choice(pool)
+    return out
+
+
+def vary(P, rnd):
+    out = dict(P)
+    for _ in range(40):
+        out = _vary1(P, rnd)
+        if out != P:
+            break
     return out
 ''',
 }
@@ -3523,7 +3628,7 @@ def build(fig, P):
     return N, update
 
 
-def vary(P, rnd):
+def _vary1(P, rnd):
     out = dict(P)
     if "pi" in str(P.get("B", "")):
         T = rnd.choice([4, 6, 8, 10, 12])
@@ -3533,6 +3638,15 @@ def vary(P, rnd):
         return out
     out.update({"A": rnd.choice([1, 2, 3, -2, 0.5]), "B": rnd.choice([1, 2, 3, 0.5]),
                 "C": rnd.choice(["0", "pi/4", "pi/2", "pi/6", "-pi/3"]), "D": rnd.choice([-2, -1, 0, 1, 2, 3])})
+    return out
+
+
+def vary(P, rnd):
+    out = dict(P)
+    for _ in range(40):
+        out = _vary1(P, rnd)
+        if out != P:
+            break
     return out
 ''',
 }
@@ -3913,7 +4027,7 @@ def build(fig, P):
     return N, update
 
 
-def vary(P, rnd):
+def _vary1(P, rnd):
     out = {k: v for k, v in P.items() if k not in ("opp", "adj", "hyp", "angle")}
     ks = set(k for k in ("opp", "adj", "hyp", "angle") if k in P)
     scene = P.get("scene", "")
@@ -3932,6 +4046,15 @@ def vary(P, rnd):
         other = list(ks - {"angle"})[0] if len(ks) == 2 else "hyp"
         ang = rnd.choice([60, 65, 70, 75]) if scene == "ladder" else rnd.choice([25, 30, 35, 40, 50, 55, 60])
         out.update({"angle": ang, other: rnd.choice([4, 5, 6, 8, 10, 12])})
+    return out
+
+
+def vary(P, rnd):
+    out = dict(P)
+    for _ in range(40):
+        out = _vary1(P, rnd)
+        if out != P:
+            break
     return out
 ''',
 }
