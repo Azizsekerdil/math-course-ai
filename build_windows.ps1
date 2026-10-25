@@ -52,6 +52,7 @@ $checksumPath = "$zipPath.sha256"
     "python-docx==1.2.0" `
     "python-pptx==1.0.2" `
     "pypdf==5.4.0" `
+    "pypdfium2==4.30.0" `
     "pyinstaller==6.22.3"
 
 $forbiddenPackageCheck = @'
@@ -82,7 +83,7 @@ $hiddenImports = @(
     "workspace_docking_manager", "command_registry", "ui_preferences",
     "embedded_course_simulations", "embedded_formula_library",
     "course_simulation_library", "ai_code_guard", "cloud_consent",
-    "pypdf", "sympy.parsing.sympy_parser"
+    "pypdf", "sympy.parsing.sympy_parser", "pdf_backend"
 )
 $pyInstallerArgs = @(
     "--noconfirm", "--clean", "--onedir", "--windowed",
@@ -96,7 +97,10 @@ $pyInstallerArgs = @(
     "--exclude-module", "mupdf",
     "--collect-all", "PIL",
     # Python simulation engine + player + embedded templates (simulations/).
-    "--collect-submodules", "simulations"
+    "--collect-submodules", "simulations",
+    # PDFium (pypdfium2): the PDF reader's renderer in PyMuPDF-free packages.
+    "--collect-all", "pypdfium2",
+    "--collect-all", "pypdfium2_raw"
 )
 foreach ($item in $addData) {
     $pyInstallerArgs += @("--add-data", $item)

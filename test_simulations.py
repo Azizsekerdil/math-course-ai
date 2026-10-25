@@ -330,6 +330,41 @@ def test_scanner():
         check("Find the equation" not in txt, "tarama önbelleği kitap metni içermez")
 
 
+def test_pdf_backend():
+    """PDF Okuyucu'nun PyMuPDF'siz yolu (yayımlanan paketlerdeki durum)."""
+    print("== PDF katmanı (pdf_backend) ==")
+    import pdf_backend
+    if not pdf_backend.can_render():
+        print("   [SKIP] sayfa çizebilen PDF arka ucu yok (pip install pypdfium2)")
+        return
+    from matplotlib.figure import Figure
+    from matplotlib.backends.backend_pdf import FigureCanvasPdf
+    d = tempfile.mkdtemp(prefix="mcai-pdf-")
+    pdf = os.path.join(d, "iki sayfa.pdf")
+    from matplotlib.backends.backend_pdf import PdfPages
+    with PdfPages(pdf) as pp:
+        for k in range(2):
+            fig = Figure(figsize=(6, 4))
+            FigureCanvasPdf(fig)
+            fig.text(0.1, 0.6, f"Page {k + 1}: Solve x^2 - 5x + 6 = 0.", fontsize=14)
+            pp.savefig(fig)
+    with pdf_backend.open_pdf(pdf, for_render=True) as doc:
+        check(len(doc) == 2, f"sayfa sayısı ({pdf_backend.render_backend()})")
+        w, h = doc[0].size
+        check(abs(w - 432) < 1 and abs(h - 288) < 1, f"sayfa boyutu punto ({w}, {h})")
+        img = doc[1].render(2.0)
+        check(img.size == (864, 576), f"zoom 2 ile çizim boyutu {img.size}")
+        dark = sum(1 for px in img.convert("L").getdata() if px < 128)
+        check(dark > 100, f"sayfa içeriği çizildi (koyu piksel {dark})")
+        clip = doc[0].render(2.5, clip=(40, 80, 240, 160))
+        check(clip.size == (500, 200), f"soru kırpma bölgesi {clip.size}")
+        check("Page 2" in doc[1].get_text(), "metin okunur")
+    pages = pdf_backend.page_texts(pdf)
+    check([p for p, _ in pages] == [1, 2] and "Solve" in pages[0][1], "page_texts")
+    import mca_common
+    check("Page 1" in mca_common.read_text_file(pdf), "AI bağlamı için PDF metni (read_text_file)")
+
+
 def main():
     t0 = time.time()
     test_registry()
@@ -339,6 +374,7 @@ def main():
         test_editor_policy()
         test_course_and_topic_matching()
         test_scanner()
+        test_pdf_backend()
     print("=" * 64)
     print(f"RESULT: {PASSED} passed, {FAILED} failed  ({time.time() - t0:.0f} sn)")
     if FAILS:

@@ -68,11 +68,12 @@ python Math_Course_AI.pyw
 (PDF rendering, OCR, Word/PowerPoint export).
 
 > **PyMuPDF is licensed AGPL-3.0-or-commercial.** It is listed as an *optional*
-> dependency and is **not** distributed with this project — you install it yourself
-> if you want in-app PDF rendering. Windows and macOS packages are supplied only as
-> GitHub Release assets and are built without PyMuPDF; no binary is committed to the
-> source repository. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for why
-> that matters.
+> dependency and is **not** distributed with this project. In-app PDF rendering and
+> text extraction use **PDFium via `pypdfium2`** (Apache-2.0 / BSD-3-Clause) when
+> PyMuPDF is absent — see `pdf_backend.py`. Windows and macOS packages are supplied
+> only as GitHub Release assets, are built without PyMuPDF and include `pypdfium2`, so
+> PDFs render there too; no binary is committed to the source repository. See
+> [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for why that matters.
 
 ## Demo in two commands
 

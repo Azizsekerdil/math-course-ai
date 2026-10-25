@@ -14,8 +14,9 @@ referansı (dosya adı + sayfa) alınır; soru cümlesi programın kendi
 katsayılar da değiştirilir, böylece ortaya kitaptakiyle aynı olmayan,
 aynı türde yeni bir alıştırma çıkar.
 
-PDF metni için isteğe bağlı PyMuPDF (fitz), o yoksa pypdf (BSD-3) kullanılır;
-ikisi de yoksa yalnızca .txt kaynaklar taranır ve kullanıcıya bu açıkça söylenir.
+PDF metni ortak pdf_backend katmanından gelir: PyMuPDF (kullanıcı kurduysa),
+yoksa PDFium (pypdfium2, Apache/BSD — paketlerde var), o da yoksa pypdf. Hiçbiri
+yoksa yalnızca .txt kaynaklar taranır ve kullanıcıya bu açıkça söylenir.
 """
 
 from __future__ import annotations
@@ -27,16 +28,9 @@ import re
 from pathlib import Path
 
 try:
-    import fitz  # PyMuPDF — isteğe bağlı (AGPL), bkz. THIRD_PARTY_NOTICES.md
-except Exception:  # pragma: no cover - ortama bağlı
-    fitz = None
-
-try:
-    # pypdf: BSD-3, saf Python. PyMuPDF içermeyen Windows/macOS paketlerinde
-    # PDF metnini bu okur (paketleme betikleri onu kurar).
-    import pypdf
-except Exception:  # pragma: no cover - ortama bağlı
-    pypdf = None
+    import pdf_backend
+except Exception:  # pragma: no cover - paket her zaman programla gelir
+    pdf_backend = None
 
 from . import engine
 
@@ -51,7 +45,7 @@ MAX_TOTAL = 400
 # ══════════════════════════════════════════════════════════════════════════
 
 def pdf_support():
-    return fitz is not None or pypdf is not None
+    return pdf_backend is not None and pdf_backend.can_extract_text()
 
 
 def page_texts(path, max_pages=MAX_PAGES):
@@ -63,31 +57,8 @@ def page_texts(path, max_pages=MAX_PAGES):
             return [(1, p.read_text(encoding="utf-8", errors="replace")[:400_000])]
         except Exception:
             return []
-    if suf == ".pdf" and fitz is not None:
-        out = []
-        try:
-            with fitz.open(str(p)) as doc:
-                for i, page in enumerate(doc):
-                    if i >= max_pages:
-                        break
-                    out.append((i + 1, page.get_text("text") or ""))
-        except Exception:
-            return out
-        return out
-    if suf == ".pdf" and pypdf is not None:
-        out = []
-        try:
-            reader = pypdf.PdfReader(str(p))
-            for i, page in enumerate(reader.pages):
-                if i >= max_pages:
-                    break
-                try:
-                    out.append((i + 1, page.extract_text() or ""))
-                except Exception:
-                    out.append((i + 1, ""))
-        except Exception:
-            return out
-        return out
+    if suf == ".pdf" and pdf_support():
+        return pdf_backend.page_texts(p, max_pages=max_pages)
     return []
 
 

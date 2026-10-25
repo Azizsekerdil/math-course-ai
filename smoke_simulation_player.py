@@ -44,7 +44,9 @@ def test_main_window_wiring():
     check('columns=("st", "info", "sim")' in src, "kurs ağacında ▶ (sim) sütunu var")
     check('if col == "#3":' in src and "open_simulation_for_item(iid)" in src,
           "▶ sütununa tıklamak oynatıcıyı açar")
-    check(src.count('"ℹ", "▶")') >= 3, "dosya, klasör ve kurs satırlarına ▶ konur")
+    check(src.count('"ℹ", "▶")') >= 4, "dosya, klasör ve kurs satırlarına ▶ konur")
+    check('values=(self._read_check(course_name, path), "ℹ"))' not in src,
+          "okuma durumu güncellenince dosya satırındaki ▶ silinmez")
     check("simulation_btn" in src and "open_selected_simulation" in src,
           "sol panelde '▶ Simülasyon' düğmesi var")
     check("from simulations.player import open_player" in src, "oynatıcı tembel import edilir")

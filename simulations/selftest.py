@@ -9,7 +9,7 @@ penceresinin açılıp oynadığını doğrular. Raporun son satırı
 "RESULT: <n> passed, <m> failed" biçimindedir; çıkış kodu başarısızlıkta 1.
 
 Amaç: "kaynakta çalışıyor ama EXE'de çalışmıyor" durumunu (eksik paketlenmiş
-modül, sympy ayrıştırıcısı, pypdf) derleme sırasında yakalamak.
+modül, sympy ayrıştırıcısı, PDFium) derleme sırasında yakalamak.
 """
 
 from __future__ import annotations
@@ -58,7 +58,30 @@ def run(out_path=None, gui=True):
             f"tarayıcı sympy ayrıştırıcısı çalışır ({res})")
     except Exception:
         rec(False, "tarayıcı:\n" + traceback.format_exc())
-    rec(scanner.pdf_support(), "PDF metin desteği var (pypdf veya PyMuPDF)")
+    rec(scanner.pdf_support(), "PDF metin desteği var (PDFium / pypdf / PyMuPDF)")
+
+    # PDF Okuyucu'nun kullandığı yol: sayfa ÇİZME + metin (paketlerde PDFium)
+    try:
+        import pdf_backend
+        from matplotlib.figure import Figure
+        from matplotlib.backends.backend_pdf import FigureCanvasPdf
+        d = Path(tempfile.mkdtemp(prefix="mcai-pdf-"))
+        pdf = d / "deneme.pdf"
+        fig = Figure(figsize=(6, 4))
+        FigureCanvasPdf(fig)
+        fig.text(0.1, 0.6, "Example 1. Solve x^2 - 5x + 6 = 0.", fontsize=14)
+        fig.savefig(str(pdf))
+        with pdf_backend.open_pdf(pdf, for_render=True) as doc:
+            img = doc[0].render(1.5)
+            dark = sum(1 for px in img.convert("L").getdata() if px < 128)
+            txt = doc[0].get_text()
+            clip = doc[0].render(2.0, clip=(0, 0, 100, 50))
+        rec(pdf_backend.can_render() and img.size[0] > 500 and dark > 50,
+            f"PDF sayfası çizilir ({pdf_backend.render_backend()}, {img.size}, koyu piksel {dark})")
+        rec(clip.size == (200, 100), f"PDF bölge kırpma çalışır ({clip.size})")
+        rec("Example" in txt, f"PDF metni okunur ({pdf_backend.text_backend()}: {txt.strip()[:40]!r})")
+    except Exception:
+        rec(False, "PDF görüntüleme:\n" + traceback.format_exc())
 
     try:
         d = Path(tempfile.mkdtemp(prefix="mcai-selftest-"))

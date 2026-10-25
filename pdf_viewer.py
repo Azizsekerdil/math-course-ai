@@ -35,9 +35,13 @@ except Exception:      # mca_common yoksa panel yine Türkçe çalışsın
         return en if (str(lang).lower().startswith("en") and en) else tr
 
 try:
-    import fitz  # PyMuPDF
+    import fitz  # PyMuPDF — yalnızca "işaretli PDF dışa aktar" için (isteğe bağlı, AGPL)
 except Exception:
     fitz = None
+
+# Sayfa görüntüleme ve kırpma pdf_backend üzerinden: PyMuPDF yoksa (yayımlanan
+# paketlerde yoktur) Apache/BSD lisanslı PDFium (pypdfium2) kullanılır.
+import pdf_backend
 
 try:
     from PIL import Image, ImageTk
@@ -395,12 +399,19 @@ class PDFViewer(ttk.Frame):
         self.page_index = 0
         self.selected_ann = None
         self.annotations = self.load_annotations()
-        if fitz is None or Image is None or ImageTk is None:
+        if not pdf_backend.can_render() or Image is None or ImageTk is None:
             self.canvas.delete("all")
-            self.canvas.create_text(30, 30, anchor="nw", fill="white", text="PDF rendering requires PyMuPDF and Pillow.\nRun: pip install PyMuPDF pillow")
+            self.canvas.create_text(30, 30, anchor="nw", fill="white", text=self._t(
+                "PDF görüntüleme için pypdfium2 ve Pillow gerekir.\nKur: pip install pypdfium2 pillow",
+                "PDF rendering needs pypdfium2 and Pillow.\nRun: pip install pypdfium2 pillow"))
             return
         try:
-            self.doc = fitz.open(str(self.path))
+            if self.doc is not None:
+                try:
+                    self.doc.close()
+                except Exception:
+                    pass
+            self.doc = pdf_backend.open_pdf(self.path, for_render=True)
             self.render()
         except Exception as exc:
             messagebox.showerror("PDF Error", str(exc))
@@ -410,9 +421,7 @@ class PDFViewer(ttk.Frame):
         if not self.doc:
             return
         page = self.doc[self.page_index]
-        mat = fitz.Matrix(self.zoom, self.zoom)
-        pix = page.get_pixmap(matrix=mat, alpha=False)
-        img = Image.open(io.BytesIO(pix.tobytes("png")))
+        img = page.render(self.zoom)
         self.photo = ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor="nw", image=self.photo, tags=("page",))
         self.canvas.config(scrollregion=(0, 0, img.width, img.height))
@@ -544,18 +553,18 @@ class PDFViewer(ttk.Frame):
     def _crop_question(self, pts):
         """Cut the dragged region out of the page at high resolution and hand it
         to the question-bank dialog (image + source PDF + page prefilled)."""
-        if not self.doc or fitz is None:
+        if not self.doc:
             return
         (x1, y1), (x2, y2) = pts
-        rect = fitz.Rect(min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2))
-        if rect.width < 15 or rect.height < 10:
+        rect = (min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2))
+        if rect[2] - rect[0] < 15 or rect[3] - rect[1] < 10:
             return  # accidental click, not a selection
         try:
             import student_tracker as _st
             page = self.doc[self.page_index]
-            pix = page.get_pixmap(matrix=fitz.Matrix(2.5, 2.5), clip=rect, alpha=False)
+            img = page.render(2.5, clip=rect)
             out = _st.question_images_dir() / f"soru_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}.png"
-            pix.save(str(out))
+            img.save(str(out))
         except Exception as exc:
             messagebox.showerror(self._t("Soru Kırp", "Clip question"), f"Kırpma başarısız: {exc}")
             return
@@ -637,7 +646,7 @@ class PDFViewer(ttk.Frame):
         if not self.doc:
             return
         page = self.doc[self.page_index]
-        width = page.rect.width
+        width = page.size[0]
         canvas_width = max(300, self.canvas.winfo_width() - 30)
         self.zoom = max(0.35, min(5.0, canvas_width / width))
         self.render()
@@ -669,7 +678,11 @@ class PDFViewer(ttk.Frame):
 
     def export_annotated_pdf(self):
         if not self.path or fitz is None:
-            messagebox.showwarning("Export", "PyMuPDF is required for PDF export.")
+            messagebox.showwarning("Export", self._t(
+                "İşaretli PDF'i dışa aktarmak için isteğe bağlı PyMuPDF gerekir (görüntüleme ve not "
+                "alma onsuz da çalışır; notlar ayrı dosyada saklanır).",
+                "Exporting an annotated PDF needs the optional PyMuPDF (viewing and annotating work "
+                "without it; notes are kept in a separate file)."))
             return
         out = filedialog.asksaveasfilename(title="Export Annotated PDF", defaultextension=".pdf", filetypes=[("PDF", "*.pdf")])
         if not out:

@@ -1999,7 +1999,7 @@ class MathCourseApp(tk.Tk):
             return
         try:
             self.tree.item(iid, text=self._read_icon(course_name, path) + Path(str(path)).name,
-                           values=(self._read_check(course_name, path), "ℹ"))
+                           values=(self._read_check(course_name, path), "ℹ", "▶"))
         except Exception:
             pass
 

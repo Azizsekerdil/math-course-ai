@@ -28,7 +28,7 @@ Concretely, in this repository:
 | The old PyInstaller spec with `collect_all('fitz')` and the one-command EXE build script are **not present**. | `Math Course AI.spec` and `build_math_course_ai_exe.bat` are absent from the file listing; packaging uses `build_macos.sh` / equivalent CLI flags with no `collect_all('fitz')`. |
 | Release binaries (the Windows and macOS zips on v1.0.0) are built in environments where PyMuPDF is never installed, and the shipped bundles were byte-scanned for `pymupdf` / `mupdf` / `fitz`: zero MuPDF components. | `.github/workflows/build-macos.yml` (manual dispatch) + `build_macos.sh` install `requirements.txt` and the permissive optional packages only; scan performed on the exact uploaded assets. |
 | PyMuPDF is **not vendored** and **not installed by default**. It is listed in `requirements-optional.txt`, not `requirements.txt`. | See both files. |
-| Every `fitz` import is inside `try/except`, so the program runs without it. | `mca_common.py`, `pdf_viewer.py`, `course_simulation_library.py`, `language_dictionary.py`, `simulations/scanner.py`, `Math_Course_AI.pyw` |
+| Every `fitz` import is inside `try/except`, so the program runs without it. | `mca_common.py`, `pdf_viewer.py`, `course_simulation_library.py`, `language_dictionary.py`, `pdf_backend.py`, `Math_Course_AI.pyw` |
 
 **Why that resolves it.** This project distributes its own MIT-licensed source and
 binaries that contain only MIT/permissively-licensed components.
@@ -42,11 +42,12 @@ complete corresponding source under AGPL-3.0 (and satisfy §13 if you expose it 
 network), **or** obtain a commercial licence from Artifex. Do not rely on this
 project's MIT licence to cover it.
 
-Alternatives, if you need PDF rendering without the copyleft: `pypdfium2`
-(Apache-2.0 / BSD-3-Clause) and `pdfminer.six` (MIT) cover most of what this program
-uses `fitz` for. Migrating is on the roadmap in
-[docs/known-limitations.md](docs/known-limitations.md); it has **not** been done, and
-this file does not pretend otherwise.
+**PDF rendering without the copyleft — done.** `pdf_backend.py` renders pages, clips
+question images and extracts text with **PDFium via `pypdfium2`** (Apache-2.0 /
+BSD-3-Clause) whenever PyMuPDF is not installed, and the Windows/macOS build scripts
+bundle `pypdfium2`, so the published packages show PDFs without containing any MuPDF
+component. The one feature that still needs PyMuPDF is *exporting* an annotated PDF
+(annotations themselves are kept in a separate sidecar file and work without it).
 
 ---
 
@@ -73,12 +74,13 @@ library (PSF licence) and are not listed separately.
 
 | Package | Version | Licence | Feature lost without it |
 |---|---|---|---|
-| **`pymupdf`** | 1.27.2.3 | **AGPL-3.0-or-commercial** — see §1 | in-app PDF rendering and text extraction |
+| **`pymupdf`** | 1.27.2.3 | **AGPL-3.0-or-commercial** — see §1 | exporting an annotated PDF (rendering and text fall back to `pypdfium2`) |
+| `pypdfium2` | 4.30.0 | Apache-2.0 OR BSD-3-Clause (bundled PDFium binary: BSD-3-Clause / Apache-2.0 with permissive third-party parts) | in-app PDF rendering, question clipping and PDF text when PyMuPDF is absent (the Windows/macOS build scripts install it) |
 | `opencv-python` | 4.13.0.92 | Apache-2.0 | image pre-processing in the labs and OCR path |
 | `pytesseract` | 0.3.13 | Apache-2.0 | OCR (also needs a separate Tesseract binary, not shipped) |
 | `python-docx` | 1.2.0 | MIT | Word export |
 | `python-pptx` | 1.0.2 | MIT | presentation generation |
-| `pypdf` | 5.4.0 | BSD-3-Clause | PDF text for the simulation player's "scan source examples" when PyMuPDF is absent (the Windows/macOS build scripts install it) |
+| `pypdf` | 5.4.0 | BSD-3-Clause | last-resort PDF text (no rendering) when neither PyMuPDF nor `pypdfium2` is available |
 | `manim` | not pinned | MIT | one optional animation path; not installed by CI |
 
 **Tesseract OCR** itself (Apache-2.0) is a separate program that this project neither

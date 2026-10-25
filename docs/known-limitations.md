@@ -86,8 +86,9 @@ matter to you, stay on the local model. See [AI_TRANSPARENCY.md](../AI_TRANSPARE
 ## 5. Third-party dependencies
 
 - **PyMuPDF is AGPL-3.0-or-commercial** and is therefore an *optional* dependency
-  that this project does not distribute. Without it, in-app PDF rendering is
-  unavailable; everything else works. See [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
+  that this project does not distribute. Without it, PDFs are rendered and read with
+  PDFium (`pypdfium2`, permissive); only *exporting an annotated PDF* still needs
+  PyMuPDF. See [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
 - `pytesseract` needs a separate Tesseract binary that this project does not ship.
 - `manim` is imported by one optional animation path and is not in `requirements.txt`;
   that path is unavailable unless you install it yourself.

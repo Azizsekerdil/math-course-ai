@@ -255,8 +255,8 @@ class SimulationPlayer(tk.Toplevel):
                           "Pick a topic folder/PDF in the tree to scan it.")
         txt = self.T(f"Taranacak: {Path(self.scan_path).name}", f"To scan: {Path(self.scan_path).name}")
         if not scanner.pdf_support():
-            txt += self.T("\nPDF metni için pypdf veya PyMuPDF gerekir (şu an yalnızca .txt taranır).",
-                          "\nPDF text needs pypdf or PyMuPDF (only .txt is scanned now).")
+            txt += self.T("\nPDF metni için pypdfium2 gerekir (şu an yalnızca .txt taranır): pip install pypdfium2",
+                          "\nPDF text needs pypdfium2 (only .txt is scanned now): pip install pypdfium2")
         return txt
 
     def _refresh_filters(self, prefer=None):
@@ -606,10 +606,10 @@ class SimulationPlayer(tk.Toplevel):
         info = self.T(f"{res['files']} dosya tarandı, {n} örnek simülasyona çevrildi.",
                       f"{res['files']} files scanned, {n} examples turned into simulations.")
         if res["skipped_pdfs"]:
-            info += self.T(f"\n{res['skipped_pdfs']} PDF atlandı: PDF metni için pypdf veya PyMuPDF kurulu değil "
-                           "(pip install pypdf).",
-                           f"\n{res['skipped_pdfs']} PDFs skipped: neither pypdf nor PyMuPDF is installed "
-                           "(pip install pypdf).")
+            info += self.T(f"\n{res['skipped_pdfs']} PDF atlandı: PDF metin desteği kurulu değil "
+                           "(pip install pypdfium2).",
+                           f"\n{res['skipped_pdfs']} PDFs skipped: no PDF text support installed "
+                           "(pip install pypdfium2).")
         info += self.T("\nKitap metni saklanmaz; soru programın kendi cümlesiyle yazılır.",
                        "\nNo book text is stored; questions are reworded by the program.")
         self.scan_info.configure(text=info)

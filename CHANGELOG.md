@@ -34,6 +34,17 @@ release**. Several entries correct claims that were previously wrong.
   every frame, seek safety, variations, editor round trip; topic matching; scanner)
   and `smoke_simulation_player.py` (the real window), both in CI.
 
+### Fixed — PDFs render in the published packages
+
+- The Windows/macOS packages are built without PyMuPDF (AGPL), so the PDF reader only
+  showed "PDF rendering requires PyMuPDF". New `pdf_backend.py` renders pages, clips
+  question images and extracts text with **PDFium via `pypdfium2`** (Apache-2.0 /
+  BSD-3-Clause) when PyMuPDF is absent; the build scripts now bundle it, and the
+  packaged EXE's self-test renders and reads a PDF. Exporting an annotated PDF is the
+  only feature that still needs the optional PyMuPDF.
+- The ▶ simulation button no longer disappears from a file row after its read status
+  changes.
+
 ### Security
 
 - **AI-generated code execution is now DISABLED by default.** A real OS sandbox could

@@ -33,8 +33,9 @@ içindeki sayıları (veya kodu) değiştirip **▶ Kodu çalıştır** ile yeni
 ve **🖼 PNG** dışa aktarım verir.
 
 **Gereken:** yalnızca programın zaten kullandığı `numpy`, `matplotlib`, `sympy`.
-Manim, FFmpeg, TeX, VLC **gerekmez**. PDF taraması için `pypdf` (BSD) veya isteğe bağlı
-PyMuPDF; Windows/macOS paketleme betikleri `pypdf`'i kurar.
+Manim, FFmpeg, TeX, VLC **gerekmez**. PDF taraması ve PDF Okuyucu için PDFium
+(`pypdfium2`, Apache/BSD) — Windows/macOS paketlerinde vardır; isteğe bağlı PyMuPDF
+kuruluysa o kullanılır.
 
 **Telif/lisans:** taranan kitabın metni **ne saklanır ne gösterilir**. Bir örnekten
 yalnızca matematiksel içerik (ifade, katsayılar, sınırlar) ve kaynak referansı
@@ -67,7 +68,7 @@ the same button in the ℹ window) opens the **Simulation Player** for that topi
 - **Python code tab:** exactly the source being run; edit `P = {...}` or the code and
   press **▶ Run code**. Export a standalone `.py`, a GIF or a PNG.
 - Needs only `numpy`, `matplotlib`, `sympy` — no Manim/FFmpeg/TeX/VLC. PDF scanning uses
-  `pypdf` (BSD) or the optional PyMuPDF.
+  PDFium (`pypdfium2`, Apache/BSD), `pypdf` or the optional PyMuPDF.
 - No book text is stored or shown: only the mathematical content and a file/page
   reference are kept, and the question is reworded by the program.
 
