@@ -547,6 +547,13 @@ def _ept(r):
     return "" if r == 0 else "e^(" + _lin(r) + ")"
 
 
+def _im(v):
+    s = _ps(v)
+    if s == "1":
+        return "i"
+    return s + "i" if s.replace(".", "").isdigit() else "(" + s + ")i"
+
+
 def _pp(v):
     v = sp.sympify(v)
     return "(" + _ps(v) + ")" if bool(v < 0) else _ps(v)
@@ -629,7 +636,7 @@ def _sol2(a, b, c, y0, v0, var="y"):
         cw, sw = f"cos({_lin(om)})", f"sin({_lin(om)})"
         expr = sp.exp(al * t) * (C1 * sp.cos(om * t) + C2 * sp.sin(om * t))
         pre = (e + "·") if e else ""
-        rshort = (f"r = {_ps(al)} ± {_ps(om)}i" if al != 0 else f"r = ± {_ps(om)}i")
+        rshort = (f"r = {_ps(al)} ± {_im(om)}" if al != 0 else f"r = ± {_im(om)}")
         R.update(case="complex", roots=[al, om], C1=C1, C2=C2, expr=expr, al=al, om=om,
                  basis=[sp.exp(al * t) * sp.cos(om * t), sp.exp(al * t) * sp.sin(om * t)],
                  btxt=[pre + cw, pre + sw],
@@ -2011,6 +2018,18 @@ def _e(v):
     return "—" if not math.isfinite(v) else f"{v:.4g}"
 
 
+def _dt(v):
+    v = float(v)
+    if not math.isfinite(v):
+        return "—"
+    if abs(v) < 1e-12:
+        return "0"
+    if abs(v) < 1:
+        s = f"{v:.5f}".rstrip("0").rstrip(".")
+        return "0" if s in ("", "-0", "0", "-") else s
+    return f"{v:.6g}"
+
+
 def _analyze_euler(P):
     key = ("eu", repr(sorted((str(k), str(v)) for k, v in P.items() if k not in ("lang", "seed"))))
     if key in _CACHE:
@@ -2184,7 +2203,8 @@ def build(fig, P):
         if k is None:
             cells.append((None, [tb.text(colx[0], yy, "⋮", ha="center", va="center", fontsize=9)]))
             continue
-        vals_ = [str(k), _d(xs[k]), _d(ys[k]), _d(ye[k]), _e(abs(ye[k] - ys[k]))]
+        er = abs(ye[k] - ys[k])
+        vals_ = [str(k), _dt(xs[k]), _dt(ys[k]), _dt(ye[k]), ("—" if not math.isfinite(er) else f"{er:.3g}")]
         cols = ["#111827", "#111827", "#E07B39", "#16A34A", "#DC2626"]
         cells.append((k, [tb.text(colx[q], yy, vals_[q], ha="center", va="center", fontsize=8.5,
                                   family="DejaVu Sans Mono", color=cols[q]) for q in range(5)]))
@@ -2905,7 +2925,10 @@ def build(fig, P):
     if S["case"] == "complex":
         rl = [axL.text(z.real + 0.06 * Rr, z.imag, "", color="#DC2626", fontsize=10, fontweight="bold",
                        va="center") for z in rv]
-        rlab = [f"{_ps(S['al'])} + {_ps(S['om'])}i", f"{_ps(S['al'])} − {_ps(S['om'])}i"]
+        if S["al"] == 0:
+            rlab = [f"{_im(S['om'])}", f"−{_im(S['om'])}"]
+        else:
+            rlab = [f"{_ps(S['al'])} + {_im(S['om'])}", f"{_ps(S['al'])} − {_im(S['om'])}"]
     elif S["case"] == "double":
         rl = [axL.text(rv[0].real, 0.12 * Rr, "", color="#DC2626", fontsize=10, fontweight="bold",
                        ha="center")]
