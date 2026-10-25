@@ -1552,15 +1552,11 @@ class PDFVocabularyScanner:
 
         def work():
             try:
-                fitz = None
-                try:
-                    import fitz as _fitz
-                    fitz = _fitz
-                except Exception:
-                    fitz = None
-                if fitz is None:
+                # PyMuPDF varsa o, yoksa PDFium (pypdfium2) / pypdf — bkz. pdf_backend.
+                import pdf_backend
+                if not pdf_backend.can_extract_text():
                     if done_cb:
-                        done_cb(False, "PyMuPDF (fitz) not available — cannot extract PDF text.")
+                        done_cb(False, "No PDF text backend — install pypdfium2 (pip install pypdfium2).")
                     return
                 pdfs = self.find_pdfs()
                 report(f"Scanning PDFs... found {len(pdfs)} files")
@@ -1578,7 +1574,7 @@ class PDFVocabularyScanner:
                         self.vocab.clear_for_pdf(rel)
                     report(f"Processing file {i}/{len(pdfs)}: {path.name}")
                     try:
-                        doc = fitz.open(str(path))
+                        doc = pdf_backend.open_pdf(path)
                     except Exception:
                         self.vocab.set_cache(rel, sig, mtime, 0, 0, status="error")
                         continue

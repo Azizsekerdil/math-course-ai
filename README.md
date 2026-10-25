@@ -26,6 +26,10 @@ tutor that runs **on your own machine** by default.
 - Produce a weekly summary you can print to A4.
 - Show worked solutions with `sympy` and plots with `matplotlib`, plus embedded
   interactive simulations and formula cards.
+- Play animated, step-by-step **Python simulations** of typical example problems for
+  every topic of the course tree (▶ next to each topic), regenerate them with new
+  numbers, edit and re-run their source, and turn example problems found in your own
+  PDFs into simulations — see [docs/SIMULATION_PLAYER.md](docs/SIMULATION_PLAYER.md).
 - Provide a bilingual (Turkish/English) dictionary, a scientific calculator, a tablet
   drawing board and five science labs.
 
@@ -64,9 +68,11 @@ python Math_Course_AI.pyw
 (PDF rendering, OCR, Word/PowerPoint export).
 
 > **PyMuPDF is licensed AGPL-3.0-or-commercial.** It is listed as an *optional*
-> dependency and is **not** distributed with this project — you install it yourself
-> if you want in-app PDF rendering. This repository ships **source only**; it builds
-> no binary and bundles no third-party library. See
+> dependency and is **not** distributed with this project. In-app PDF rendering and
+> text extraction use **PDFium via `pypdfium2`** (Apache-2.0 / BSD-3-Clause) when
+> PyMuPDF is absent — see `pdf_backend.py`. Windows and macOS packages are supplied
+> only as GitHub Release assets, are built without PyMuPDF and include `pypdfium2`, so
+> PDFs render there too; no binary is committed to the source repository. See
 > [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for why that matters.
 
 ## Demo in two commands
@@ -169,6 +175,8 @@ python test_ai_terminal.py
 python test_egitim_token.py
 python test_ai_code_guard.py
 python test_public_claims.py
+python test_simulations.py
+python smoke_simulation_player.py
 python smoke_dark_theme.py
 python smoke_lazy_panels.py
 ```

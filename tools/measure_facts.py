@@ -34,6 +34,7 @@ TEST_SUITES = [
     "test_workspace_docking_manager.py", "test_ai_terminal.py",
     "test_egitim_token.py", "test_ai_code_guard.py", "test_public_claims.py",
     "smoke_dark_theme.py", "smoke_lazy_panels.py",
+    "test_simulations.py", "smoke_simulation_player.py",
 ]
 
 
@@ -89,6 +90,12 @@ def measure():
         getattr(ecs, "EMBEDDED_SIMULATIONS", []) or [])
     facts["formula_cards"] = int(getattr(efl, "FORMULA_COUNT", 0)) or len(
         getattr(efl, "FORMULAS", []) or [])
+
+    from simulations import engine as sim_engine
+    sim = sim_engine.stats()
+    facts["python_simulation_kinds"] = sim["kinds"]
+    facts["python_simulation_examples"] = sim["examples"]
+    facts["python_simulation_examples_per_course"] = sim["per_course"]
 
     import education
     facts["guide_chapters"] = int(getattr(education, "BOLUM_SAYISI", 0))

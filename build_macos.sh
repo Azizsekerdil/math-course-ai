@@ -22,7 +22,9 @@ PYTHON_BIN="${PYTHON_BIN:-python3}"
   opencv-python==4.13.0.92 \
   pytesseract==0.3.13 \
   python-docx==1.2.0 \
-  python-pptx==1.0.2
+  python-pptx==1.0.2 \
+  pypdf==5.4.0 \
+  pypdfium2==4.30.0
 "$PYTHON_BIN" -m pip install pyinstaller
 
 APP_NAME="Math Course AI"
@@ -75,6 +77,9 @@ done
   --hidden-import embedded_course_simulations --hidden-import embedded_formula_library \
   --hidden-import course_simulation_library --hidden-import ai_code_guard \
   --hidden-import cloud_consent \
+  --collect-submodules simulations --hidden-import sympy.parsing.sympy_parser \
+  --hidden-import pypdf --hidden-import pdf_backend \
+  --collect-all pypdfium2 --collect-all pypdfium2_raw \
   --collect-all PIL \
   "$PROJECT_ROOT/Math_Course_AI.pyw"
 

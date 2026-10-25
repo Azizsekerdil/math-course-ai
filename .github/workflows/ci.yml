@@ -33,7 +33,7 @@ jobs:
   tests:
     name: Test suites (Windows - Python 3.11)
     runs-on: windows-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     env:
       PYTHONUTF8: "1"
       PYTHONIOENCODING: "utf-8"
@@ -101,6 +101,14 @@ jobs:
       - name: test_public_claims.py
         if: ${{ !cancelled() }}
         run: ./.github/run_suite.ps1 test_public_claims.py
+
+      - name: test_simulations.py
+        if: ${{ !cancelled() }}
+        run: ./.github/run_suite.ps1 test_simulations.py
+
+      - name: smoke_simulation_player.py
+        if: ${{ !cancelled() }}
+        run: ./.github/run_suite.ps1 smoke_simulation_player.py
 
       - name: smoke_dark_theme.py
         if: ${{ !cancelled() }}

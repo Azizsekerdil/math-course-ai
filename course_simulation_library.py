@@ -166,17 +166,14 @@ class PDFQuestionExtractor:
             yield p
 
     def _extract_text(self, path):
-        if fitz is None:
-            return []
+        # PyMuPDF varsa o, yoksa PDFium (pypdfium2) / pypdf — bkz. pdf_backend.
         try:
-            doc = fitz.open(str(path))
-            out = []
-            for i, page in enumerate(doc):
-                out.append((i + 1, page.get_text()))
-            doc.close()
-            return out
+            import pdf_backend
         except Exception:
             return []
+        if not pdf_backend.can_extract_text():
+            return []
+        return pdf_backend.page_texts(path, max_pages=10_000)
 
     def _detect_hint(self, text):
         best = None

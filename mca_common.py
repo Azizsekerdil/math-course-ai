@@ -292,15 +292,18 @@ def read_text_file(path, max_chars=250_000):
             document = _lazy_docx().Document(str(path))
             text = "\n".join(p.text for p in document.paragraphs)
             return text[:max_chars]
-        if ext == ".pdf" and fitz:
-            out = []
-            with fitz.open(str(path)) as doc:
-                for i, page in enumerate(doc):
-                    if i >= 30:
-                        out.append("\n[Text extraction stopped after 30 pages for safety.]\n")
-                        break
-                    out.append(f"\n--- Page {i+1} ---\n" + page.get_text("text"))
-            return "\n".join(out)[:max_chars]
+        if ext == ".pdf":
+            # PyMuPDF varsa o, yoksa PDFium (pypdfium2) / pypdf — bkz. pdf_backend.
+            import pdf_backend
+            if pdf_backend.can_extract_text():
+                out = []
+                with pdf_backend.open_pdf(path) as doc:
+                    for i, page in enumerate(doc):
+                        if i >= 30:
+                            out.append("\n[Text extraction stopped after 30 pages for safety.]\n")
+                            break
+                        out.append(f"\n--- Page {i+1} ---\n" + page.get_text("text"))
+                return "\n".join(out)[:max_chars]
     except Exception as exc:
         return f"Could not read file: {exc}"
     return "This file type can be opened externally, but text extraction is not available."

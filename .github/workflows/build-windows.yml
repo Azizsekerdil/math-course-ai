@@ -1,0 +1,66 @@
+name: Windows Paketi (EXE)
+
+# Builds the PyMuPDF-free Windows package with build_windows.ps1 on a real
+# Windows runner, then runs the packaged EXE's own simulation self-test
+# ("Math Course AI.exe" --sim-selftest) so a bundle that only works from
+# source is caught here instead of on the user's machine.
+#
+# Triggers: manual dispatch, version tags, and pushes to the simulation
+# feature branch (workflow_dispatch only works once this file is on main).
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+    branches: ["claude/wonderful-babbage-7pp6l9"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Build Windows EXE (Python 3.11)
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065   # v5
+        with:
+          python-version: "3.11"
+
+      - name: Build the EXE (build_windows.ps1)
+        shell: pwsh
+        run: ./build_windows.ps1 -PythonExe (Get-Command python).Source -Version v1.1.0
+
+      - name: Packaged EXE simulation self-test
+        shell: pwsh
+        run: |
+          $exe = Join-Path $PWD "dist\windows\Math Course AI\Math Course AI.exe"
+          $report = Join-Path $env:RUNNER_TEMP "sim-selftest.txt"
+          $p = Start-Process -FilePath $exe -ArgumentList @("--sim-selftest", "`"$report`"") -Wait -PassThru
+          if (Test-Path $report) { Get-Content $report -Encoding utf8 | ForEach-Object { Write-Host $_ } }
+          else { throw "self-test wrote no report" }
+          if ($p.ExitCode -ne 0) { throw "packaged EXE self-test failed (exit $($p.ExitCode))" }
+          $line = (Get-Content $report -Encoding utf8 | Select-String '^RESULT:' | Select-Object -Last 1).ToString()
+          if ($env:GITHUB_STEP_SUMMARY) { "EXE self-test: $line" | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY }
+
+      - name: Upload the Windows package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Math-Course-AI-Windows
+          path: |
+            dist/windows/Math.Course.AI-Windows-*.zip
+            dist/windows/Math.Course.AI-Windows-*.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
