@@ -2337,6 +2337,7 @@ def _solve0(P):
     rv = f"⟨{_pp(r[0])}, {_pp(r[1])}, {_pp(r[2])}⟩"
     dv = f"⟨{_pp(d[0])}, {_pp(d[1])}, {_pp(d[2])}⟩"
     sqs = " + ".join(f"({_pp(e)})²" for e in d)
+    rad = "√" + _pp(sq) if _pp(sq).isdigit() else "√(" + _pp(sq) + ")"
     ig = _pp(spd)
     ig = f"({ig})" if (" + " in ig or " - " in ig) else ig
     T0 = [_simp(e.subs(_T, t0)) for e in d]
@@ -2344,8 +2345,8 @@ def _solve0(P):
     steps = [
         (f"r(t) = {rv},  t ∈ {_iv(t0, t1)}", f"r(t) = {rv},  t ∈ {_iv(t0, t1)}"),
         (f"Hız (teğet) vektörü: r'(t) = {dv}", f"Velocity (tangent) vector: r'(t) = {dv}"),
-        (f"Hız büyüklüğü: |r'(t)| = √({_cut(sqs, 70)}) = √({_pp(sq)}) = {_pp(spd)}",
-         f"Speed: |r'(t)| = √({_cut(sqs, 70)}) = √({_pp(sq)}) = {_pp(spd)}"),
+        (f"Hız büyüklüğü: |r'(t)| = √({_cut(sqs, 70)}) = {rad} = {_pp(spd)}",
+         f"Speed: |r'(t)| = √({_cut(sqs, 70)}) = {rad} = {_pp(spd)}"),
         (f"Yay uzunluğu: L = ∫_{_pp(t0)}^{_pp(t1)} |r'(t)| dt = ∫_{_pp(t0)}^{_pp(t1)} {ig} dt {Ls}",
          f"Arc length: L = ∫_{_pp(t0)}^{_pp(t1)} |r'(t)| dt = ∫_{_pp(t0)}^{_pp(t1)} {ig} dt {Ls}"),
     ]

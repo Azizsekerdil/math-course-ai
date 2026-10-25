@@ -1144,7 +1144,8 @@ def _build_fin(fig, P, A, tr):
     ring, = ax.plot([], [], "o", ms=20, mfc="none", mec=GREEN, mew=2, zorder=7)
     rlab = ax.text(0, 0, "", color=GREEN, fontsize=12, fontweight="bold", zorder=9,
                    bbox=dict(boxstyle="round,pad=0.25", fc="white", ec="none", alpha=0.8))
-    info = _info(ax, 10.5, np.concatenate([xs, [af] * 5]), np.concatenate([yb, ext + [hi] * (5 - len(ext))]), wide=0.42)
+    info = _info(ax, 10.5, np.concatenate([xs, [af] * (30 * len(ext))]),
+                 np.concatenate([yb, [e for e in ext for _ in range(30)]]), wide=0.42)
     cells, restxt = _table(tb, A, tr)
     sides = [s for s in ("-", "+") if (s == side or not side)]
     h0, h1 = 0.85 * W, 0.004 * W
