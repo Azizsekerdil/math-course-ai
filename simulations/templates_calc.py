@@ -1044,6 +1044,10 @@ def solve(P):
     elif res["k"] == "undef":
         ans = (f"lim ({arrow}) f({vn}) tanımsız (f bu yakında tanımlı değil)",
                f"lim ({arrow}) f({vn}) is undefined (f is not defined there)")
+    elif kind == "domain":
+        sd = "⁺" if (L is not None and L["k"] == "undef") else "⁻"
+        ans = (f"lim ({vn} → {at}{sd}) f({vn}) = {vt}  (f yalnızca {'sağ' if sd == '⁺' else 'sol'} tarafta tanımlı)",
+               f"lim ({vn} → {at}{sd}) f({vn}) = {ve}  (f is defined only on the {'right' if sd == '⁺' else 'left'})")
     return {"answer": ans, "steps": st,
             "fmt": {"fx": A["fx"], "pretty_f": A["fx"], "a": at, "lim": arrow}}
 
@@ -1140,7 +1144,7 @@ def _build_fin(fig, P, A, tr):
     ring, = ax.plot([], [], "o", ms=20, mfc="none", mec=GREEN, mew=2, zorder=7)
     rlab = ax.text(0, 0, "", color=GREEN, fontsize=12, fontweight="bold", zorder=9,
                    bbox=dict(boxstyle="round,pad=0.25", fc="white", ec="none", alpha=0.8))
-    info = _info(ax)
+    info = _info(ax, 10.5, np.concatenate([xs, [af] * 5]), np.concatenate([yb, ext + [hi] * (5 - len(ext))]), wide=0.42)
     cells, restxt = _table(tb, A, tr)
     sides = [s for s in ("-", "+") if (s == side or not side)]
     h0, h1 = 0.85 * W, 0.004 * W
@@ -2038,10 +2042,11 @@ def _analyze(P):
     vf = _fl(val) if val is not None else nval
     A["vf"] = vf
     # sign changes and signed parts
-    zs = [] if (A["undef"]) else [z for z in _zeros(h, lo_, hi_) if lo_ + 1e-9 < z < hi_ - 1e-9]
+    dl_ = 1e-6 * (hi_ - lo_)
+    zs = [] if (A["undef"]) else [z for z in _zeros(h, lo_, hi_) if lo_ + 1e-9 < z < hi_ - 1e-9
+                                  and _h1(h, z - dl_) * _h1(h, z + dl_) < 0]
     pts = [lo_] + zs + [hi_]
     parts = []
-    Fh = _num(F, x) if F is not None else None
     for k in range(len(pts) - 1):
         u, w = pts[k], pts[k + 1]
         ex_ = None
@@ -2058,10 +2063,7 @@ def _analyze(P):
         num_ = _quad(h, u, w, 2000) if not A["improper"] else float("nan")
         parts.append((u, w, ex_, num_ if ex_ is None else _fl(ex_)))
     A["zeros"], A["parts"] = zs, parts
-    if af > bf:
-        A["total"] = sum(abs(p[3]) for p in parts)
-    else:
-        A["total"] = sum(abs(p[3]) for p in parts)
+    A["total"] = sum(abs(p[3]) for p in parts)
     tex_ok = all(p[2] is not None for p in parts)
     A["total_ex"] = sum(abs(p[2]) for p in parts) if tex_ok and parts else None
     A["tex"] = _texf(f, A["fx"])
@@ -2953,6 +2955,13 @@ def solve(P):
     nm = _MNAME[meth]
     fmt["method"] = nm
     fmt["S"] = S
+    if any(v != v for _, v in A["sums"]) or A["ef"] != A["ef"]:
+        return {"answer": (f"f, [{A['sa']}, {A['sb']}] aralığında tanımsız ya da sınırsız: Riemann toplamı anlamlı değil",
+                           f"f is undefined or unbounded on [{A['sa']}, {A['sb']}]: Riemann sums are not meaningful"),
+                "steps": [(f"f({vn}) = {A['fx']},  [{A['sa']}, {A['sb']}]", f"f({vn}) = {A['fx']},  [{A['sa']}, {A['sb']}]"),
+                          ("Bazı örnek noktalarda f tanımsız (ya da sonsuz); dikdörtgen yükseklikleri hesaplanamaz.",
+                           "f is undefined (or infinite) at some sample points, so rectangle heights cannot be computed.")],
+                "fmt": fmt}
     st = [(f"Δ{vn} = (b − a)/n = ({A['sb']} − {A['sa']})/n;  n = 4 için Δ{vn} = {_ex(A['dx4'])}",
            f"Δ{vn} = (b − a)/n = ({A['sb']} − {A['sa']})/n;  for n = 4, Δ{vn} = {_ex(A['dx4'])}")]
     rule = {"left": (f"Sol uç noktalar: {vn}ᵢ = a + iΔ{vn}, i = 0, …, n − 1;  Lₙ = Δ{vn}·Σ f({vn}ᵢ)",
@@ -3730,6 +3739,8 @@ def _analyze(P):
                 break
             xr = xn
         conv = abs(_h1(h, xr)) < 1e-9 * (1 + abs(_h1(dh, xr)))
+        if conv and abs(xr) < 1e-12:
+            xr = 0.0
     A["root"], A["conv"] = xr, conv
     exact = None
     try:
@@ -3821,7 +3832,13 @@ def solve(P):
                    f"Errors |{vn}ₖ − root|: {et}  — the number of correct digits roughly doubles each step (quadratic convergence)."))
     fmt["root"] = _xx(last)
     ans = (f"{vn} ≈ {_xx(last)}  ({vn}{_sub(m)}, {m} adım)", f"{vn} ≈ {_xx(last)}  ({vn}{_sub(m)}, {m} steps)")
-    if stt != "ok":
+    if stt == "div" or (stt == "ok" and not A["conv"]):
+        if stt == "ok":
+            st.append(("Adımlar bir sayıya yerleşmiyor: bu başlangıç değeriyle yöntem yakınsamıyor.",
+                       "The iterates do not settle: from this starting value the method does not converge."))
+        ans = (f"Yöntem ıraksıyor: {vn}{_sub(m)} = {_g(last, 6)} (kök bulunamadı)",
+               f"The method diverges: {vn}{_sub(m)} = {_g(last, 6)} (no root found)")
+    elif stt != "ok":
         ans = (ans[0] + " — yöntem durdu", ans[1] + " — the method stopped")
     return {"answer": ans, "steps": st, "fmt": fmt}
 
@@ -3836,14 +3853,19 @@ def build(fig, P):
     x0 = A["x0"]
     r = A["root"] if A["conv"] else (its[-1][4] if its else x0)
     pts = [x0] + [it[4] for it in its]
-    w0 = max(1.5 * abs(x0 - r), 1.2, 0.8 * max([abs(p - x0) for p in pts] + [0.0]))
+    if A["conv"]:
+        w0 = max(1.5 * abs(x0 - r), 1.2, 0.8 * max([abs(p - x0) for p in pts] + [0.0]))
+    else:
+        w0 = max(1.5, 1.2 * abs(pts[1] - x0) if len(pts) > 1 else 1.5)
     views = [((x0 + r) / 2 if A["conv"] else x0, w0)]
     wmin = w0 * 0.004
     for k in range(1, m + 1):
         xa_ = pts[k]
         xb_ = pts[k + 1] if k + 1 < len(pts) else r
         span = max(abs(xa_ - xb_), abs(xa_ - r))
-        w = min(views[-1][1], max(0.9 * span, wmin) * 1.6)
+        w = max(0.9 * span, wmin) * 1.6
+        if A["conv"]:
+            w = min(views[-1][1], w)
         views.append((0.5 * (xa_ + xb_), w))
     gs = fig.add_gridspec(1, 2, width_ratios=[1.6, 1], left=0.07, right=0.99, top=0.9, bottom=0.1, wspace=0.08)
     ax = fig.add_subplot(gs[0, 0])
@@ -3889,9 +3911,9 @@ def build(fig, P):
             return views[0]
         k = min(m - 1, (i - 16) // F)
         if i >= 16 + m * F:
-            return views[m]
+            return views[m] if A["conv"] else views[m - 1]
         u = ((i - 16) - k * F) / float(F)
-        if u < 0.7:
+        if u < 0.7 or (not A["conv"] and k == m - 1):
             return views[k]
         t = _ramp(u, 0.7, 1.0)
         t = t * t * (3 - 2 * t)
@@ -3965,7 +3987,8 @@ def build(fig, P):
                              f"Step {k_now + 1}: tangent at ({vn}{_sub(k_now)}, f({vn}{_sub(k_now)}))\n")
                           + f"{vn}{_sub(k_now + 1)} = {_g(xk, 8)} − ({_g(fk, 4)})/({_g(dk, 4)})\n   = {_xx(xn)}")
         else:
-            info.set_text(ans + "\n" + _T(P, f"görüntü ×{_g(w0 / w, 3)} yakınlaştırıldı", f"view zoomed ×{_g(w0 / w, 3)}"))
+            info.set_text(ans + ("\n" + _T(P, f"görüntü ×{_g(w0 / w, 3)} yakınlaştırıldı", f"view zoomed ×{_g(w0 / w, 3)}")
+                                 if A["conv"] else ""))
         return []
 
     return N, update
@@ -4373,3 +4396,20 @@ EXAMPLES += [
            "For f(x) = {pretty_f} on [{a}, {b}], find the number c promised by the mean value theorem."),
      "P": {"f": "sqrt(x)", "a": 1, "b": 9}},
 ]
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Türkçe büyük "İ" ile yazılmış klasör/dosya adları (ör. "Belirli İntegral")
+# str.lower() ile "i̇" (i + birleşik nokta) olur; anahtar kelimelerin bu
+# biçimini de ekleyerek konu eşleştirmesinin kaçırmamasını sağlarız.
+def _dotted_i_variants(words):
+    out = list(words)
+    for kw in words:
+        v = " ".join(("İ" + w[1:]).lower() if w.startswith("i") else w for w in kw.split())
+        if v != kw and v not in out:
+            out.append(v)
+    return out
+
+
+for _tpl in TEMPLATES.values():
+    _tpl["topics"] = _dotted_i_variants(_tpl["topics"])

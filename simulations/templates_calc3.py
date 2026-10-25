@@ -413,6 +413,7 @@ def _style3d(ax, box):
     ax.computed_zorder = False
     for a in (ax.xaxis, ax.yaxis, ax.zaxis):
         a.set_pane_color((0.975, 0.977, 0.985, 1.0))
+        a.set_major_locator(MaxNLocator(5))
     ax.set_box_aspect((1, 1, 0.75), zoom=1.02)
 
 

@@ -883,7 +883,8 @@ def solve(P):
         ("Neden 180°? Üç köşe koparılıp yan yana konunca bir doğru açı (düz açı) oluşturur.",
          "Why 180°? Tear off the three corners and line them up: together they make a straight angle."),
     ]
-    return {"answer": f"C = {_n(C)}°", "steps": steps, "fmt": {"kind": kd}}
+    return {"answer": (f"C = {_n(C)}°  ({kd[0]})", f"C = {_n(C)}°  ({kd[1]})"), "steps": steps,
+            "fmt": {"kind": kd}}
 
 
 def _wedge(V, t1, t2, rho, n=32):
@@ -1155,6 +1156,12 @@ def solve(P):
                       "tile a floor on its own."))
     ans = (f"Toplam {S}°, her iç açı {_deg(each)}, her dış açı {_deg(ext)}",
            f"Sum {S}°, each interior angle {_deg(each)}, each exterior angle {_deg(ext)}")
+    if P.get("tiling"):
+        ok = fit.denominator == 1
+        ans = (ans[0] + ("; boşluksuz döşer (köşede " + str(fit.numerator) + " tane)" if ok else
+                         "; tek başına boşluksuz döşemez"),
+               ans[1] + ("; tiles with no gaps (" + str(fit.numerator) + " per corner)" if ok else
+                         "; cannot tile on its own"))
     return {"answer": ans, "steps": steps, "fmt": {"name": nm, "S": str(S)}}
 
 
@@ -1309,19 +1316,19 @@ EXAMPLES += [
            "Find the interior angle sum, one interior angle and one exterior angle of a regular {name}."),
      "P": {"n": 5}},
     {"id": "geo-poly-2", "kind": "polygon_angles", "topics": ["stop sign", "word problem", "sözel problem"],
-     "title": ("Dur levhası (sekizgen)", "Stop sign (octagon)"),
+     "title": ("Trafik levhasının açıları", "Angles of a road sign"),
      "q": ("Bir trafik levhası düzgün {name} biçimindedir. Köşelerindeki iç açılar kaçar derecedir? "
            "Tüm iç açıların toplamı nedir?",
            "A road sign has the shape of a regular {name}. How large is each corner (interior) angle, "
            "and what is the sum of all interior angles?"),
      "P": {"n": 8}},
     {"id": "geo-poly-3", "kind": "polygon_angles", "topics": ["tessellation", "tiling", "döşeme"],
-     "title": ("Altıgen fayanslar", "Hexagonal tiles"),
+     "title": ("Düzgün çokgenlerle döşeme", "Tiling with regular polygons"),
      "q": ("Bir zemin düzgün {name} biçimli fayanslarla döşenecek. Bir iç açı kaç derecedir? "
            "Bir köşede fayanslar boşluksuz birleşebilir mi?",
            "A floor is to be covered with tiles shaped like a regular {name}. How big is each interior "
            "angle? Can the tiles meet at a corner without gaps?"),
-     "P": {"n": 6}},
+     "P": {"n": 6, "tiling": True}},
 ]
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -1425,7 +1432,9 @@ def solve(P):
                       f"{s}' = k · {s} = {_d(k)} · {_d(sides[s])} = {_d(new[s])}{us}"))
     steps.append((f"Açılar değişmez; çevreler oranı k = {_d(k)}, alanlar oranı k² = {_d(k * k)}",
                   f"Angles stay the same; perimeter ratio k = {_d(k)}, area ratio k² = {_d(k * k)}"))
-    ans = ", ".join(f"{s}' = {_d(new[s])}{us}" for s in others) + f"  (k = {_d(k)})"
+    ans0 = ", ".join(f"{s}' = {_d(new[s])}{us}" for s in others)
+    ans = (ans0 + f"  (k = {_d(k)}, alan oranı k² = {_d(k * k)})",
+           ans0 + f"  (k = {_d(k)}, area ratio k² = {_d(k * k)})")
     return {"answer": ans, "steps": steps,
             "fmt": {"g": g, "gv": _d(new[g]), "gk": _d(sides[g])}}
 
@@ -3230,6 +3239,9 @@ def solve(P):
     else:
         a = f"cos {D}° {eq} {d['ct']}, sin {D}° {eq} {d['st']}, tan {D}° {eq} {tn}"
         ans = (a, a)
+    if d["q"]:
+        ans = (f"{_ROM[d['q']]}. bölge, θ' = {_n(d['ref'])}°:  " + ans[0],
+               f"Quadrant {_ROM[d['q']]}, θ' = {_n(d['ref'])}°:  " + ans[1])
     return {"answer": ans, "steps": steps, "fmt": {"rad": f"{math.radians(deg):.4f}"}}
 
 
@@ -3474,8 +3486,11 @@ def solve(P):
     ]
     sh = (_s(C) + (" sağa" if C > 0 else " sola")) if C != 0 else "0"
     she = (_s(C) + (" right" if C > 0 else " left")) if C != 0 else "0"
-    ans = (f"Genlik {_s(amp)}, periyot {_s(T)}, faz kayması {sh}, orta çizgi y = {_s(D)}",
-           f"Amplitude {_s(amp)}, period {_s(T)}, phase shift {she}, midline y = {_s(D)}")
+    yn = P.get("yname", "y")
+    ans = (f"Genlik {_s(amp)}, periyot {_s(T)}, faz kayması {sh}, orta çizgi {yn} = {_s(D)} "
+           f"(maks {_s(D + amp)}, min {_s(D - amp)})",
+           f"Amplitude {_s(amp)}, period {_s(T)}, phase shift {she}, midline {yn} = {_s(D)} "
+           f"(max {_s(D + amp)}, min {_s(D - amp)})")
     return {"answer": ans, "steps": steps, "fmt": {"eq": eq, "T": _s(T)}}
 
 

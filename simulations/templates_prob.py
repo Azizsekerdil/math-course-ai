@@ -1581,8 +1581,9 @@ def build(fig, P):
                    visible=False) for (a, b, c), (x, y) in zip(prods, lv)]
     t_prod = [72, 80, 88, 96]
     title = ax.set_title("", fontsize=11.5)
-    rl = [(0, f"A: {nm['A'][L]}    A': {nm['Ac'][L]}", "#1D4ED8", 10),
-          (0, f"B: {nm['B'][L]}    B': {nm['Bc'][L]}", "#374151", 10),
+    named = nm["A"][L] != "A" or nm["B"][L] != "B"
+    rl = [(0, f"A: {nm['A'][L]}    A': {nm['Ac'][L]}" if named else "", "#1D4ED8", 10),
+          (0, f"B: {nm['B'][L]}    B': {nm['Bc'][L]}" if named else "", "#374151", 10),
           (72, f"P(A ∩ B) = {_n(pA)}·{_n(pBA)} = {_n(j1)}", "#111827", 10.5),
           (88, f"P(A' ∩ B) = {_n(pAc)}·{_n(pBnA)} = {_n(j2)}", "#111827", 10.5),
           (104, "Toplam olasılık:" if tr else "Total probability:", "#15803D", 10),

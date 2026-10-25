@@ -149,6 +149,10 @@ def _parse_f(raw):
 
 
 def _parse_f0(raw):
+    r0 = str(raw).replace("′", "'").replace("’", "'")
+    if "''" in r0 or "d2y" in r0 or "d^2y" in r0 or "d²y" in r0:
+        raise ValueError("Yalnızca birinci mertebe y' = f(x, y) desteklenir / only first-order y' = f(x, y) "
+                         "is supported: " + str(raw))
     s = _clean(raw)
     expr, rhs = None, None
     if "=" in s:
@@ -246,6 +250,12 @@ def _rk4(F1, x0, y0, x1, n, lo, hi):
         k2 = F1(x + hh / 2, y + hh * k1 / 2)
         k3 = F1(x + hh / 2, y + hh * k2 / 2)
         k4 = F1(x + hh, y + hh * k3)
+        ks = (k1, k2, k3, k4)
+        if not all(math.isfinite(v) for v in ks):
+            break
+        # tutarsız eğimler = tekillik (ör. 1/(x-1)) ya da patlama: eğriyi orada kes
+        if abs(hh) * (max(ks) - min(ks)) > 0.1 * (1.0 + abs(y)):
+            break
         y = y + hh * (k1 + 2 * k2 + 2 * k3 + k4) / 6
         if not math.isfinite(y) or y < lo or y > hi:
             break
@@ -714,7 +724,22 @@ def _analyze(P):
         xe = min(xmax, x0 + 2.0)
     else:
         xe = max(xmin, x0 - 2.0)
-    ye = _evalx(closed["sol"], xe) if closed is not None else None
+    reach = xb[-1] - 1e-9 <= xe <= xf[-1] + 1e-9
+    if closed is not None and not reach:
+        # RK4 sınırda durdu: kapalı form [son nokta, xe] üzerinde sonlu, tek işaretli ve monoton ise
+        # bu bir patlama değil yalnızca çok büyük değerlerdir (ör. y' = 10y).
+        try:
+            xr = xf[-1] if xe > x0 else xb[-1]
+            g = sp.lambdify(_X, closed["sol"], "numpy")
+            with np.errstate(all="ignore"):
+                v = np.broadcast_to(np.asarray(g(np.linspace(xr, xe, 300)), dtype=complex), (300,))
+            dv = np.diff(v.real)
+            reach = bool(np.all(np.isfinite(v)) and np.max(np.abs(v.imag)) < 1e-9
+                         and (np.all(v.real > 0) or np.all(v.real < 0))
+                         and (np.all(dv >= 0) or np.all(dv <= 0)))
+        except Exception:
+            reach = False
+    ye = _evalx(closed["sol"], xe) if (closed is not None and reach) else None
     if ye is None:
         if xe == x0:
             ye = y0
@@ -2025,11 +2050,12 @@ def _analyze_euler(P):
 
     def ref(xq):
         xq = np.asarray(xq, dtype=float)
+        inside = (xq >= rxs[0] - 1e-9) & (xq <= rxs[-1] + 1e-9)
         if g is not None:
             try:
                 with np.errstate(all="ignore"):
                     v = np.broadcast_to(np.asarray(g(xq), dtype=complex), xq.shape)
-                return np.where(np.abs(v.imag) < 1e-9, v.real, np.nan).astype(float)
+                return np.where((np.abs(v.imag) < 1e-9) & inside, v.real, np.nan).astype(float)
             except Exception:
                 pass
         out = np.interp(xq, rxs, rys)
@@ -2038,7 +2064,8 @@ def _analyze_euler(P):
     cx = np.linspace(x0, xn, 300)
     A = {"f": f, "extra": extra, "F": F, "x0": x0, "y0": y0, "h": h, "n": len(xs) - 1,
          "fxs": _fxs(P.get("f", "x + y"), f, extra),
-         "xs": xs, "ys": ys, "sl": sl, "ye": ref(xs), "cx": cx, "cy": ref(cx), "closed": closed}
+         "xs": xs, "ys": ys, "sl": sl, "ye": ref(xs), "cx": cx, "cy": ref(cx), "closed": closed,
+         "xr": float(rx[-1])}
     if len(_CACHE) > 60:
         _CACHE.clear()
     _CACHE[key] = A
@@ -2088,6 +2115,12 @@ def solve(P):
                       "Euler's method is first order: halving h roughly halves the error"))
         a_tr += f";  hata {_e(err)}"
         a_en += f";  error {_e(err)}"
+    else:
+        xr = _d(A["xr"])
+        steps.append((f"Gerçek çözüm x ≈ {xr} civarında sınırsız büyüyor (tanımsız); Euler adımları bunu fark etmez",
+                      f"The true solution blows up near x ≈ {xr}; the Euler steps do not notice this"))
+        a_tr += f";  gerçek çözüm x ≈ {xr} civarında patlıyor"
+        a_en += f";  the true solution blows up near x ≈ {xr}"
     return {"answer": (a_tr, a_en), "steps": steps,
             "fmt": {"fx": fx, "xn": xn, "ic": f"y({_d(xs[0])}) = {_d(ys[0])}"}}
 
